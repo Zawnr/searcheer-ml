@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Configure logging
+#konfigurasi logging
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -51,26 +51,23 @@ class StandardResponse(BaseModel):
     request_id: Optional[str] = None
 
 def clean_text_safe(text: Any) -> str:
-    """Ultra-safe text cleaning function"""
+    
     try:
-        # Convert to string first
+        #konversi ke string
         if isinstance(text, bytes):
             text = text.decode('utf-8', errors='ignore')
         
         if not isinstance(text, str):
             text = str(text)
         
-        # Remove all non-printable characters except basic whitespace
+        #membersihkan karakter yang tidak dapat dicetak
         cleaned = ''.join(char for char in text if char.isprintable() or char in '\n\r\t ')
-        
-        # Normalize whitespace
         cleaned = ' '.join(cleaned.split())
         
         return cleaned
     except Exception:
         return ""
 
-# Simple request models without complex validation
 class JobAnalysisRequest(BaseModel):
     job_title: str
     job_description: str
@@ -189,7 +186,7 @@ async def train_analyzer_background():
     except Exception as e:
         logger.error(f"Background training error: {e}")
 
-# Initialize FastAPI app
+#inisialisasi FastAPI 
 app = FastAPI(
     title="Job Compatibility Analyzer API",
     description="Advanced API for analyzing CV compatibility with job descriptions",
@@ -199,16 +196,16 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS configuration
+#konfigurasi CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # More permissive for testing
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Simple request processing middleware
+#simple request processing middleware
 @app.middleware("http")
 async def process_request(request: Request, call_next):
     start_time = time.time()
@@ -241,7 +238,7 @@ async def process_request(request: Request, call_next):
             }
         )
 
-# Simple validation error handler
+#simple validation error handler
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     request_id = getattr(request.state, 'request_id', str(uuid.uuid4()))
@@ -267,9 +264,8 @@ async def analyze_cv_with_job(
     job_title: str = None,
     job_description: str = None
 ):
-    """Upload CV file and analyze compatibility with job in one step"""
     try:
-        # Validate job data from form
+        # validate job data from form 
         if not job_title or not job_description:
             return JSONResponse(
                 status_code=422,
@@ -282,11 +278,11 @@ async def analyze_cv_with_job(
                 }
             )
         
-        # Clean job data
+        # clean job data
         job_title = clean_text_safe(job_title)
         job_description = clean_text_safe(job_description)
         
-        # Validate job data
+        # validate job data
         if len(job_title) < 5:
             return JSONResponse(
                 status_code=422,
@@ -311,7 +307,7 @@ async def analyze_cv_with_job(
                 }
             )
         
-        # Process CV file
+        #processing untuk file cvnya
         file_content = await validate_uploaded_file(file)
         
         from utils.pdf_utils import extract_text_from_pdf, is_ats_friendly
@@ -330,7 +326,7 @@ async def analyze_cv_with_job(
                 request_id=request.state.request_id
             )
         
-        # Language validation
+        #deteksi bahasa CV
         language_result = validate_english_text(cv_text, text_type="CV")
         if not language_result['is_english']:
             return StandardResponse(
@@ -340,7 +336,7 @@ async def analyze_cv_with_job(
                 request_id=request.state.request_id
             )
         
-        # Job description language validation
+        #deteksi bahasa job description
         job_lang_check = validate_english_text(job_description, "Job Description")
         if not job_lang_check['is_english']:
             return StandardResponse(
@@ -350,7 +346,7 @@ async def analyze_cv_with_job(
                 request_id=request.state.request_id
             )
         
-        # ATS compatibility check
+        #deteksi apakah CV ATS
         ats_compatible, ats_issues, ats_score = is_ats_friendly(cv_text)
         
         if not ats_compatible:
@@ -366,7 +362,7 @@ async def analyze_cv_with_job(
                 request_id=request.state.request_id
             )
         
-        # Perform compatibility analysis
+        #analisis kesesuaian CV dengan pekerjaan
         if not analyzer:
             raise APIException(503, "Analyzer service unavailable")
         
@@ -381,7 +377,7 @@ async def analyze_cv_with_job(
         if not results:
             raise APIException(500, "Analysis computation failed")
         
-        # Process results
+        #proses hasil analisis
         skills_analysis = results.get('skills_analysis', {})
         matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
         missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
@@ -525,17 +521,17 @@ async def upload_cv(request: Request, file: UploadFile = File(...)):
 @app.post("/analyze-compatibility-simple")
 @rate_limit(max_requests=settings.max_requests_per_minute, window_seconds=60) 
 async def analyze_compatibility_simple(request: Request, data: JobAnalysisRequest):
-    """Simplified compatibility analysis using Pydantic model"""
+
     try:
         if not analyzer:
             raise APIException(503, "Analyzer service unavailable")
         
-        # Clean input data
+        #membersihkan data input
         job_title = clean_text_safe(data.job_title)
         job_description = clean_text_safe(data.job_description)
         cv_text = clean_text_safe(data.cv_text)
         
-        # Basic validation
+        #validasi dasar
         if len(job_title) < 5:
             raise APIException(422, "Job title must be at least 5 characters")
         
@@ -545,13 +541,13 @@ async def analyze_compatibility_simple(request: Request, data: JobAnalysisReques
         if len(cv_text.split()) < 100:
             raise APIException(422, "CV text must be at least 100 words")
         
-        # Language validation
+        #deteksi bahasa
         from utils.language_utils import validate_english_text
         job_lang_check = validate_english_text(job_description, "Job Description")
         if not job_lang_check['is_english']:
             raise APIException(400, "Job description must be in English")
         
-        # Generate analysis
+        #agenerate analysis
         from utils.similarity_utils import generate_detailed_analysis_report
         results = generate_detailed_analysis_report(
             cv_text,
@@ -563,7 +559,7 @@ async def analyze_compatibility_simple(request: Request, data: JobAnalysisReques
         if not results:
             raise APIException(500, "Analysis computation failed")
         
-        # Process results
+        #hasil analisis
         skills_analysis = results.get('skills_analysis', {})
         matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
         missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
@@ -629,9 +625,7 @@ async def analyze_compatibility_simple(request: Request, data: JobAnalysisReques
 @app.post("/analyze-compatibility")
 @rate_limit(max_requests=settings.max_requests_per_minute, window_seconds=60)
 async def analyze_compatibility(request: Request):
-    """Analyze job compatibility with manual request parsing"""
     try:
-        # Manual request body parsing to handle encoding issues
         try:
             body = await request.body()
             logger.info(f"Request body length: {len(body)}")
@@ -649,7 +643,6 @@ async def analyze_compatibility(request: Request):
                     }
                 )
             
-            # Try to decode body
             try:
                 body_str = body.decode('utf-8', errors='replace')
                 logger.info(f"Decoded body preview: {body_str[:200]}...")
@@ -657,10 +650,10 @@ async def analyze_compatibility(request: Request):
                 logger.error(f"Failed to decode body: {decode_error}")
                 body_str = str(body, errors='replace')
             
-            # Clean the JSON string but preserve JSON structure
+            #membersihkan body string
             body_str = body_str.strip()
             
-            # Parse JSON
+            #mengecek apakah body adalah JSON
             try:
                 request_data = json.loads(body_str)
                 logger.info(f"Successfully parsed JSON with keys: {list(request_data.keys())}")
@@ -691,7 +684,7 @@ async def analyze_compatibility(request: Request):
                 }
             )
         
-        # Validate required fields
+        #mengecek apakah semua field yang diperlukan ada
         required_fields = ['job_title', 'job_description', 'cv_text']
         for field in required_fields:
             if field not in request_data:
@@ -706,12 +699,12 @@ async def analyze_compatibility(request: Request):
                     }
                 )
         
-        # Clean input data
+        #membersihkan data input
         job_title = clean_text_safe(request_data['job_title'])
         job_description = clean_text_safe(request_data['job_description'])
         cv_text = clean_text_safe(request_data['cv_text'])
         
-        # Basic validation
+        #validasi dasar
         if len(job_title) < 5:
             return JSONResponse(
                 status_code=422,
@@ -751,13 +744,13 @@ async def analyze_compatibility(request: Request):
         if not analyzer:
             raise APIException(503, "Analyzer service unavailable")
         
-        # Language validation
+        #deteksi bahasa
         from utils.language_utils import validate_english_text
         job_lang_check = validate_english_text(job_description, "Job Description")
         if not job_lang_check['is_english']:
             raise APIException(400, "Job description language validation failed")
         
-        # Generate analysis
+        #generate analysis
         from utils.similarity_utils import generate_detailed_analysis_report
         results = generate_detailed_analysis_report(
             cv_text,
@@ -769,7 +762,7 @@ async def analyze_compatibility(request: Request):
         if not results:
             raise APIException(500, "Analysis computation failed")
         
-        # Process results
+        #hasil analisis
         skills_analysis = results.get('skills_analysis', {})
         matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
         missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
@@ -832,7 +825,7 @@ async def analyze_compatibility(request: Request):
         logger.error(f"Analysis error: {e}")
         raise APIException(500, f"Analysis failed: {str(e)}")
 
-# Error handlers
+#error handlers
 @app.exception_handler(APIException)
 async def api_exception_handler(request: Request, exc: APIException):
     return JSONResponse(
