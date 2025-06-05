@@ -75,8 +75,6 @@ Setelah CV dan deskripsi pekerjaan diproses dan dianalisis:
 
 ### Ringkasan
 
-Alur sistem ini melibatkan beberapa langkah yang bekerja sama untuk menilai seberapa cocok CV dengan deskripsi pekerjaan:
-
 1. **Preprocessing:** Membersihkan dan mengekstraksi fitur dari CV dan deskripsi pekerjaan.
 2. **Perhitungan Similarity:** Menggunakan TF-IDF dan cosine similarity untuk membandingkan teks.
 3. **Prediksi Neural Network:** Model neural betwork yang memprediksi kecocokan berdasarkan data pelatihan.
