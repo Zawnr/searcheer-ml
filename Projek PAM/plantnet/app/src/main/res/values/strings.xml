@@ -1,7 +1,0 @@
-<resources>
-    <string name="app_name">PlantNet</string>
-    <string name="image_preview">Image Preview</string>
-    <string name="upload_image">Upload Image</string>
-    <string name="enter_description">Enter description</string>
-    <string name="submit_post">Submit Post</string>
-</resources>
