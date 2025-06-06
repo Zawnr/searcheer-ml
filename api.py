@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -51,9 +51,8 @@ class StandardResponse(BaseModel):
     request_id: Optional[str] = None
 
 def clean_text_safe(text: Any) -> str:
-    
     try:
-        #konversi ke string
+        #mengonversi ke string
         if isinstance(text, bytes):
             text = text.decode('utf-8', errors='ignore')
         
@@ -129,6 +128,7 @@ def rate_limit(max_requests: int = 30, window_seconds: int = 60):
             client_ip = request.client.host
             current_time = time.time()
             
+            #cleanup old requests
             for ip in list(request_counts.keys()):
                 request_counts[ip] = [
                     timestamp for timestamp in request_counts[ip] 
@@ -186,11 +186,84 @@ async def train_analyzer_background():
     except Exception as e:
         logger.error(f"Background training error: {e}")
 
+def perform_analysis(cv_text: str, job_title: str, job_description: str):
+    """Fungsi helper untuk melakukan analisis kompatibilitas"""
+    if not analyzer:
+        raise APIException(503, "Analyzer service unavailable")
+    
+    #mengecek bahasa
+    from utils.language_utils import validate_english_text
+    job_lang_check = validate_english_text(job_description, "Job Description")
+    if not job_lang_check['is_english']:
+        raise APIException(400, "Job description must be in English")
+    
+    #generate analysis
+    from utils.similarity_utils import generate_detailed_analysis_report
+    results = generate_detailed_analysis_report(
+        cv_text,
+        job_title,
+        job_description,
+        analyzer
+    )
+    
+    if not results:
+        raise APIException(500, "Analysis computation failed")
+    
+    #process hasil analisis
+    skills_analysis = results.get('skills_analysis', {})
+    matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
+    missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
+    
+    overall_score = results['overall_score']
+    confidence_score = min(
+        (results['skill_match'] + results['text_similarity']) / 200 + 0.3,
+        1.0
+    )
+
+    if overall_score < 45:
+        recommendation_level = "LOW_MATCH"
+        tips = [
+            "Focus on developing fundamental skills",
+            "Consider entry-level positions or internships",
+            "Take relevant courses or certifications",
+            "Build a portfolio to demonstrate skills"
+        ]
+    elif overall_score < 70:
+        recommendation_level = "MODERATE_MATCH"
+        tips = [
+            "Develop the missing high-priority skills",
+            "Gain experience through projects or volunteering",
+            "Tailor your CV to highlight relevant experience",
+            "Consider similar roles to build experience"
+        ]
+    else:
+        recommendation_level = "STRONG_MATCH"
+        tips = [
+            "Highlight your matching skills prominently",
+            "Prepare specific examples of relevant experience",
+            "Apply with confidence",
+            "Research the company culture and values"
+        ]
+    
+    return {
+        'overall_score': overall_score,
+        'text_similarity': results['text_similarity'],
+        'skill_match': results['skill_match'],
+        'experience_match': results['experience_match'],
+        'education_match': results['education_match'],
+        'industry_match': results['industry_match'],
+        'recommendation_level': recommendation_level,
+        'matched_skills': matched_skills,
+        'missing_skills': missing_skills,
+        'tips': tips,
+        'confidence_score': confidence_score
+    }
+
 #inisialisasi FastAPI 
 app = FastAPI(
     title="Job Compatibility Analyzer API",
     description="Advanced API for analyzing CV compatibility with job descriptions",
-    version="2.1.0",
+    version="2.2.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
@@ -205,7 +278,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#simple request processing middleware
+#request middleware untuk logging
 @app.middleware("http")
 async def process_request(request: Request, call_next):
     start_time = time.time()
@@ -238,7 +311,7 @@ async def process_request(request: Request, call_next):
             }
         )
 
-#simple validation error handler
+#error handler untuk validasi request
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     request_id = getattr(request.state, 'request_id', str(uuid.uuid4()))
@@ -250,202 +323,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "success": False,
             "message": "Request validation failed",
-            "errors": ["Invalid request format - please check your input"],
+            "errors": [str(exc)],
             "timestamp": datetime.now().isoformat(),
             "request_id": request_id
         }
     )
 
-@app.post("/analyze-cv-with-job")
-@rate_limit(max_requests=10, window_seconds=60)
-async def analyze_cv_with_job(
-    request: Request,
-    file: UploadFile = File(...),
-    job_title: str = None,
-    job_description: str = None
-):
-    try:
-        # validate job data from form 
-        if not job_title or not job_description:
-            return JSONResponse(
-                status_code=422,
-                content={
-                    "success": False,
-                    "message": "Missing job information",
-                    "errors": ["Both job_title and job_description are required"],
-                    "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                }
-            )
-        
-        # clean job data
-        job_title = clean_text_safe(job_title)
-        job_description = clean_text_safe(job_description)
-        
-        # validate job data
-        if len(job_title) < 5:
-            return JSONResponse(
-                status_code=422,
-                content={
-                    "success": False,
-                    "message": "Job title too short",
-                    "errors": ["Job title must be at least 5 characters"],
-                    "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                }
-            )
-        
-        if len(job_description.split()) < 10:
-            return JSONResponse(
-                status_code=422,
-                content={
-                    "success": False,
-                    "message": "Job description too short", 
-                    "errors": ["Job description must be at least 10 words"],
-                    "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                }
-            )
-        
-        #processing untuk file cvnya
-        file_content = await validate_uploaded_file(file)
-        
-        from utils.pdf_utils import extract_text_from_pdf, is_ats_friendly
-        from utils.language_utils import validate_english_text
-        
-        cv_text = extract_text_from_pdf(file_content)
-        cv_text = clean_text_safe(cv_text)
-        word_count = len(cv_text.split())
-        
-        if word_count < 100:
-            return StandardResponse(
-                success=False,
-                message="CV content insufficient",
-                errors=["CV must contain at least 100 words for proper analysis"],
-                data={"word_count": word_count},
-                request_id=request.state.request_id
-            )
-        
-        #deteksi bahasa CV
-        language_result = validate_english_text(cv_text, text_type="CV")
-        if not language_result['is_english']:
-            return StandardResponse(
-                success=False,
-                message="CV language validation failed",
-                errors=[language_result['message']],
-                request_id=request.state.request_id
-            )
-        
-        #deteksi bahasa job description
-        job_lang_check = validate_english_text(job_description, "Job Description")
-        if not job_lang_check['is_english']:
-            return StandardResponse(
-                success=False,
-                message="Job description language validation failed",
-                errors=["Job description must be in English"],
-                request_id=request.state.request_id
-            )
-        
-        #deteksi apakah CV ATS
-        ats_compatible, ats_issues, ats_score = is_ats_friendly(cv_text)
-        
-        if not ats_compatible:
-            return StandardResponse(
-                success=False,
-                message="CV needs improvement for ATS compatibility",
-                errors=ats_issues,
-                data={
-                    "ats_score": float(ats_score),
-                    "word_count": word_count,
-                    "cv_preview": cv_text[:200] + "..." if len(cv_text) > 200 else cv_text
-                },
-                request_id=request.state.request_id
-            )
-        
-        #analisis kesesuaian CV dengan pekerjaan
-        if not analyzer:
-            raise APIException(503, "Analyzer service unavailable")
-        
-        from utils.similarity_utils import generate_detailed_analysis_report
-        results = generate_detailed_analysis_report(
-            cv_text,
-            job_title,
-            job_description,
-            analyzer
-        )
-        
-        if not results:
-            raise APIException(500, "Analysis computation failed")
-        
-        #proses hasil analisis
-        skills_analysis = results.get('skills_analysis', {})
-        matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
-        missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
-        
-        overall_score = results['overall_score']
-        confidence_score = min(
-            (results['skill_match'] + results['text_similarity']) / 200 + 0.3,
-            1.0
-        )
-        
-        if overall_score < 45:
-            recommendation_level = "LOW_MATCH"
-            tips = [
-                "Focus on developing fundamental skills",
-                "Consider entry-level positions or internships",
-                "Take relevant courses or certifications",
-                "Build a portfolio to demonstrate skills"
-            ]
-        elif overall_score < 70:
-            recommendation_level = "MODERATE_MATCH"
-            tips = [
-                "Develop the missing high-priority skills",
-                "Gain experience through projects or volunteering",
-                "Tailor your CV to highlight relevant experience",
-                "Consider similar roles to build experience"
-            ]
-        else:
-            recommendation_level = "STRONG_MATCH"
-            tips = [
-                "Highlight your matching skills prominently",
-                "Prepare specific examples of relevant experience",
-                "Apply with confidence",
-                "Research the company culture and values"
-            ]
-        
-        response_data = {
-            "cv_analysis": {
-                "ats_score": float(ats_score),
-                "word_count": word_count,
-                "language_detected": language_result['detected_language']
-            },
-            "compatibility_analysis": {
-                "overall_score": overall_score,
-                "text_similarity": results['text_similarity'],
-                "skill_match": results['skill_match'],
-                "experience_match": results['experience_match'],
-                "education_match": results['education_match'],
-                "industry_match": results['industry_match'],
-                "recommendation_level": recommendation_level,
-                "matched_skills": matched_skills,
-                "missing_skills": missing_skills,
-                "tips": tips,
-                "confidence_score": confidence_score
-            }
-        }
-        
-        return StandardResponse(
-            success=True,
-            message="CV analysis and job compatibility completed successfully",
-            data=response_data,
-            request_id=request.state.request_id
-        )
-        
-    except APIException:
-        raise
-    except Exception as e:
-        logger.error(f"CV analysis error: {e}")
-        raise APIException(500, f"Analysis failed: {str(e)}")
+@app.get("/")
+async def root():
+    return {"message": "Job Compatibility Analyzer API v2.2.0", "docs": "/docs"}
 
 @app.get("/health")
 async def health_check():
@@ -460,13 +346,10 @@ async def health_check():
         }
     )
 
-@app.get("/")
-async def root():
-    return {"message": "Job Compatibility Analyzer API v2.1.0", "docs": "/docs"}
-
 @app.post("/upload-cv")
 @rate_limit(max_requests=10, window_seconds=60)
 async def upload_cv(request: Request, file: UploadFile = File(...)):
+    """Mengupload CV yang nanti outputnya berupa teks yang berhasil diekstrak dri pdf"""
     try:
         file_content = await validate_uploaded_file(file)
         
@@ -518,193 +401,20 @@ async def upload_cv(request: Request, file: UploadFile = File(...)):
         logger.error(f"CV upload error: {e}")
         raise APIException(500, f"CV processing failed: {str(e)}")
 
-@app.post("/analyze-compatibility-simple")
-@rate_limit(max_requests=settings.max_requests_per_minute, window_seconds=60) 
-async def analyze_compatibility_simple(request: Request, data: JobAnalysisRequest):
-
+@app.post("/analyze-cv-with-job")
+@rate_limit(max_requests=10, window_seconds=60)
+async def analyze_cv_with_job(
+    request: Request,
+    file: UploadFile = File(...),
+    job_title: str = Form(...),
+    job_description: str = Form(...)
+):
     try:
-        if not analyzer:
-            raise APIException(503, "Analyzer service unavailable")
-        
         #membersihkan data input
-        job_title = clean_text_safe(data.job_title)
-        job_description = clean_text_safe(data.job_description)
-        cv_text = clean_text_safe(data.cv_text)
+        job_title = clean_text_safe(job_title)
+        job_description = clean_text_safe(job_description)
         
-        #validasi dasar
-        if len(job_title) < 5:
-            raise APIException(422, "Job title must be at least 5 characters")
-        
-        if len(job_description.split()) < 10:
-            raise APIException(422, "Job description must be at least 10 words")
-        
-        if len(cv_text.split()) < 100:
-            raise APIException(422, "CV text must be at least 100 words")
-        
-        #deteksi bahasa
-        from utils.language_utils import validate_english_text
-        job_lang_check = validate_english_text(job_description, "Job Description")
-        if not job_lang_check['is_english']:
-            raise APIException(400, "Job description must be in English")
-        
-        #agenerate analysis
-        from utils.similarity_utils import generate_detailed_analysis_report
-        results = generate_detailed_analysis_report(
-            cv_text,
-            job_title,
-            job_description,
-            analyzer
-        )
-        
-        if not results:
-            raise APIException(500, "Analysis computation failed")
-        
-        #hasil analisis
-        skills_analysis = results.get('skills_analysis', {})
-        matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
-        missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
-        
-        overall_score = results['overall_score']
-        confidence_score = min(
-            (results['skill_match'] + results['text_similarity']) / 200 + 0.3,
-            1.0
-        )
-        
-        if overall_score < 45:
-            recommendation_level = "LOW_MATCH"
-            tips = [
-                "Focus on developing fundamental skills",
-                "Consider entry-level positions or internships", 
-                "Take relevant courses or certifications",
-                "Build a portfolio to demonstrate skills"
-            ]
-        elif overall_score < 70:
-            recommendation_level = "MODERATE_MATCH"
-            tips = [
-                "Develop the missing high-priority skills",
-                "Gain experience through projects or volunteering",
-                "Tailor your CV to highlight relevant experience", 
-                "Consider similar roles to build experience"
-            ]
-        else:
-            recommendation_level = "STRONG_MATCH"
-            tips = [
-                "Highlight your matching skills prominently",
-                "Prepare specific examples of relevant experience",
-                "Apply with confidence",
-                "Research the company culture and values"
-            ]
-        
-        response_data = EnhancedCompatibilityResponse(
-            overall_score=overall_score,
-            text_similarity=results['text_similarity'],
-            skill_match=results['skill_match'],
-            experience_match=results['experience_match'],
-            education_match=results['education_match'],
-            industry_match=results['industry_match'],
-            recommendation_level=recommendation_level,
-            matched_skills=matched_skills,
-            missing_skills=missing_skills,
-            tips=tips,
-            confidence_score=confidence_score
-        )
-        
-        return StandardResponse(
-            success=True,
-            message="Analysis completed successfully",
-            data=response_data.dict(),
-            request_id=request.state.request_id
-        )
-        
-    except APIException:
-        raise
-    except Exception as e:
-        logger.error(f"Analysis error: {e}")
-        raise APIException(500, f"Analysis failed: {str(e)}")
-
-@app.post("/analyze-compatibility")
-@rate_limit(max_requests=settings.max_requests_per_minute, window_seconds=60)
-async def analyze_compatibility(request: Request):
-    try:
-        try:
-            body = await request.body()
-            logger.info(f"Request body length: {len(body)}")
-            
-            if not body:
-                logger.error("Empty request body")
-                return JSONResponse(
-                    status_code=422,
-                    content={
-                        "success": False,
-                        "message": "Empty request body",
-                        "errors": ["Request body is required"],
-                        "timestamp": datetime.now().isoformat(),
-                        "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                    }
-                )
-            
-            try:
-                body_str = body.decode('utf-8', errors='replace')
-                logger.info(f"Decoded body preview: {body_str[:200]}...")
-            except Exception as decode_error:
-                logger.error(f"Failed to decode body: {decode_error}")
-                body_str = str(body, errors='replace')
-            
-            #membersihkan body string
-            body_str = body_str.strip()
-            
-            #mengecek apakah body adalah JSON
-            try:
-                request_data = json.loads(body_str)
-                logger.info(f"Successfully parsed JSON with keys: {list(request_data.keys())}")
-            except json.JSONDecodeError as json_error:
-                logger.error(f"JSON decode error: {json_error}")
-                logger.error(f"Body content: {repr(body_str)}")
-                return JSONResponse(
-                    status_code=422,
-                    content={
-                        "success": False,
-                        "message": "Invalid JSON format",
-                        "errors": ["Request body must be valid JSON"],
-                        "timestamp": datetime.now().isoformat(),
-                        "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                    }
-                )
-            
-        except Exception as e:
-            logger.error(f"Failed to parse request body: {e}")
-            return JSONResponse(
-                status_code=422,
-                content={
-                    "success": False,
-                    "message": "Invalid request format",
-                    "errors": ["Could not parse request body"],
-                    "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                }
-            )
-        
-        #mengecek apakah semua field yang diperlukan ada
-        required_fields = ['job_title', 'job_description', 'cv_text']
-        for field in required_fields:
-            if field not in request_data:
-                return JSONResponse(
-                    status_code=422,
-                    content={
-                        "success": False,
-                        "message": f"Missing required field: {field}",
-                        "errors": [f"Field '{field}' is required"],
-                        "timestamp": datetime.now().isoformat(),
-                        "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                    }
-                )
-        
-        #membersihkan data input
-        job_title = clean_text_safe(request_data['job_title'])
-        job_description = clean_text_safe(request_data['job_description'])
-        cv_text = clean_text_safe(request_data['cv_text'])
-        
-        #validasi dasar
+        #memeriksa data input
         if len(job_title) < 5:
             return JSONResponse(
                 status_code=422,
@@ -722,95 +432,114 @@ async def analyze_compatibility(request: Request):
                 status_code=422,
                 content={
                     "success": False,
-                    "message": "Job description too short",
+                    "message": "Job description too short", 
                     "errors": ["Job description must be at least 10 words"],
                     "timestamp": datetime.now().isoformat(),
                     "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
                 }
             )
         
-        if len(cv_text.split()) < 100:
-            return JSONResponse(
-                status_code=422,
-                content={
-                    "success": False,
-                    "message": "CV text too short",
-                    "errors": ["CV text must be at least 100 words"],
-                    "timestamp": datetime.now().isoformat(),
-                    "request_id": getattr(request.state, 'request_id', str(uuid.uuid4()))
-                }
+        file_content = await validate_uploaded_file(file)
+        
+        from utils.pdf_utils import extract_text_from_pdf, is_ats_friendly
+        from utils.language_utils import validate_english_text
+        
+        cv_text = extract_text_from_pdf(file_content)
+        cv_text = clean_text_safe(cv_text)
+        word_count = len(cv_text.split())
+        
+        if word_count < 100:
+            return StandardResponse(
+                success=False,
+                message="CV content insufficient",
+                errors=["CV must contain at least 100 words for proper analysis"],
+                data={"word_count": word_count},
+                request_id=request.state.request_id
             )
         
-        if not analyzer:
-            raise APIException(503, "Analyzer service unavailable")
+        #deteksi bahasa CV
+        language_result = validate_english_text(cv_text, text_type="CV")
+        if not language_result['is_english']:
+            return StandardResponse(
+                success=False,
+                message="CV language validation failed",
+                errors=[language_result['message']],
+                request_id=request.state.request_id
+            )
         
-        #deteksi bahasa
-        from utils.language_utils import validate_english_text
+        #deteksi bahasa job description
         job_lang_check = validate_english_text(job_description, "Job Description")
         if not job_lang_check['is_english']:
-            raise APIException(400, "Job description language validation failed")
+            return StandardResponse(
+                success=False,
+                message="Job description language validation failed",
+                errors=["Job description must be in English"],
+                request_id=request.state.request_id
+            )
         
-        #generate analysis
-        from utils.similarity_utils import generate_detailed_analysis_report
-        results = generate_detailed_analysis_report(
-            cv_text,
-            job_title,
-            job_description,
-            analyzer
+        #mengecek apakah CV ats friendly
+        ats_compatible, ats_issues, ats_score = is_ats_friendly(cv_text)
+        
+        if not ats_compatible:
+            return StandardResponse(
+                success=False,
+                message="CV needs improvement for ATS compatibility",
+                errors=ats_issues,
+                data={
+                    "ats_score": float(ats_score),
+                    "word_count": word_count,
+                    "cv_preview": cv_text[:200] + "..." if len(cv_text) > 200 else cv_text
+                },
+                request_id=request.state.request_id
+            )
+        
+        analysis_result = perform_analysis(cv_text, job_title, job_description)
+        
+        response_data = {
+            "cv_analysis": {
+                "ats_score": float(ats_score),
+                "word_count": word_count,
+                "language_detected": language_result['detected_language']
+            },
+            "compatibility_analysis": analysis_result
+        }
+        
+        return StandardResponse(
+            success=True,
+            message="CV analysis and job compatibility completed successfully",
+            data=response_data,
+            request_id=request.state.request_id
         )
         
-        if not results:
-            raise APIException(500, "Analysis computation failed")
+    except APIException:
+        raise
+    except Exception as e:
+        logger.error(f"CV analysis error: {e}")
+        raise APIException(500, f"Analysis failed: {str(e)}")
+
+#hanya bisa menerima JSON
+@app.post("/analyze-compatibility")
+@rate_limit(max_requests=settings.max_requests_per_minute, window_seconds=60)
+async def analyze_compatibility(request: Request, data: JobAnalysisRequest):
+    try:
+        #membersihkan data input
+        job_title = clean_text_safe(data.job_title)
+        job_description = clean_text_safe(data.job_description)
+        cv_text = clean_text_safe(data.cv_text)
         
-        #hasil analisis
-        skills_analysis = results.get('skills_analysis', {})
-        matched_skills = [skill for skill, _ in skills_analysis.get('matched_skills', [])]
-        missing_skills = [skill for skill, _ in skills_analysis.get('missing_skills', [])]
+        #validasi dasar
+        if len(job_title) < 5:
+            raise APIException(422, "Job title must be at least 5 characters")
         
-        overall_score = results['overall_score']
-        confidence_score = min(
-            (results['skill_match'] + results['text_similarity']) / 200 + 0.3,
-            1.0
-        )
+        if len(job_description.split()) < 10:
+            raise APIException(422, "Job description must be at least 10 words")
         
-        if overall_score < 45:
-            recommendation_level = "LOW_MATCH"
-            tips = [
-                "Focus on developing fundamental skills",
-                "Consider entry-level positions or internships",
-                "Take relevant courses or certifications",
-                "Build a portfolio to demonstrate skills"
-            ]
-        elif overall_score < 70:
-            recommendation_level = "MODERATE_MATCH" 
-            tips = [
-                "Develop the missing high-priority skills",
-                "Gain experience through projects or volunteering",
-                "Tailor your CV to highlight relevant experience",
-                "Consider similar roles to build experience"
-            ]
-        else:
-            recommendation_level = "STRONG_MATCH"
-            tips = [
-                "Highlight your matching skills prominently",
-                "Prepare specific examples of relevant experience",
-                "Apply with confidence",
-                "Research the company culture and values"
-            ]
+        if len(cv_text.split()) < 100:
+            raise APIException(422, "CV text must be at least 100 words")
         
-        response_data = EnhancedCompatibilityResponse(
-            overall_score=overall_score,
-            text_similarity=results['text_similarity'],
-            skill_match=results['skill_match'],
-            experience_match=results['experience_match'],
-            education_match=results['education_match'],
-            industry_match=results['industry_match'],
-            recommendation_level=recommendation_level,
-            matched_skills=matched_skills,
-            missing_skills=missing_skills,
-            tips=tips,
-            confidence_score=confidence_score
-        )
+        analysis_result = perform_analysis(cv_text, job_title, job_description)
+        
+        response_data = EnhancedCompatibilityResponse(**analysis_result)
         
         return StandardResponse(
             success=True,
@@ -825,7 +554,59 @@ async def analyze_compatibility(request: Request):
         logger.error(f"Analysis error: {e}")
         raise APIException(500, f"Analysis failed: {str(e)}")
 
-#error handlers
+#bisa menerima file atau teks
+@app.post("/analyze-compatibility-flexible")
+@rate_limit(max_requests=10, window_seconds=60)
+async def analyze_compatibility_flexible(
+    request: Request,
+    file: UploadFile = File(None),
+    cv_text: str = Form(None),
+    job_title: str = Form(...),
+    job_description: str = Form(...)
+):
+    try:
+        #membersihkan data input
+        job_title = clean_text_safe(job_title)
+        job_description = clean_text_safe(job_description)
+        
+        if len(job_title) < 5:
+            raise APIException(422, "Job title must be at least 5 characters")
+        
+        if len(job_description.split()) < 10:
+            raise APIException(422, "Job description must be at least 10 words")
+        
+        #mengekstrak teks dari file atau menggunakan teks yang diberikan
+        if file:
+            file_content = await validate_uploaded_file(file)
+            from utils.pdf_utils import extract_text_from_pdf, is_ats_friendly
+            cv_text = extract_text_from_pdf(file_content)
+            cv_text = clean_text_safe(cv_text)
+        elif cv_text:
+            cv_text = clean_text_safe(cv_text)
+        else:
+            raise APIException(422, "Either file or cv_text must be provided")
+        
+        if len(cv_text.split()) < 100:
+            raise APIException(422, "CV text must be at least 100 words")
+        
+        analysis_result = perform_analysis(cv_text, job_title, job_description)
+        
+        response_data = EnhancedCompatibilityResponse(**analysis_result)
+        
+        return StandardResponse(
+            success=True,
+            message="Analysis completed successfully",
+            data=response_data.dict(),
+            request_id=request.state.request_id
+        )
+        
+    except APIException:
+        raise
+    except Exception as e:
+        logger.error(f"Analysis error: {e}")
+        raise APIException(500, f"Analysis failed: {str(e)}")
+
+# Error handlers
 @app.exception_handler(APIException)
 async def api_exception_handler(request: Request, exc: APIException):
     return JSONResponse(
