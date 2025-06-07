@@ -2,6 +2,43 @@
 **Base URL**: `http://localhost:8000`  
 **Content-Type**: `application/json` (untuk JSON endpoints), `multipart/form-data` (untuk file upload)
 
+## Cara Menjalankan
+#### Install dependensi
+```bash
+pip install requirements.txt
+```
+#### Menjalankan proyek ML
+```bash
+python main.py
+```
+#### Menjalankan API
+```bash
+python api.py
+```
+#### Menjalankan curl API
+**GET**
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+**POST**
+
+/api/cv/upload
+```bash
+curl.exe -X POST http://127.0.0.1:8000/api/cv/upload -F "file=@D:/dbs_coding_camp/data testing/Insania Cindy Puan Fadilahsari-resume (2).pdf"
+```
+
+/api/analyze/cv-with-job
+```bash
+ curl.exe -X POST "http://127.0.0.1:8000/analyze_job" -F "job_title=Data Scientist" -F "job_description=Deskripsi Pekerjaan  Design, develop, and implement machine learning models and algorithms to address business challenges. Analyze large and complex datasets to extract actionable insights that drive decision-making. Ensure data quality and accuracy through proper validation and testing processes. Collaborate with cross-functional teams to identify data needs, define problems, and implement solutions.  Develop predictive models to anticipate user behavior and optimize product and business outcomes. Create compelling visualizations and reports to communicate findings to technical and non-technical stakeholders. Research and stay updated with the latest advancements in data science, machine learning, and generative AI.  Design and optimize generative AI systems, including developing and fine-tuning prompts for tools like ChatGPT or DALL-E. Work on integrating generative AI models into business processes to enhance user experiences and drive innovation. Collaborate with product teams to transform data and machine learning models into robust, scalable, and user-centric AI products.  Kualifikasi Bachelor’s Or Master’s Degree In Computer Science, Data Science, Statistics, Mathematics, Or Related Field. At Least 1-3 Years Of Experience In Data Science Or Related Fields. Proficiency In Python, R, Or Other Programming Languages Used For Data Science.Strong Command Of SQL And Familiarity With Cloud-based Databases Like Google BigQuery.  Experience With Machine Learning Frameworks (e.g., Scikit-learn, TensorFlow, PyTorch). Expertise In Data Visualization Tools (e.g., Looker, Tableau, Power BI). Familiarity With Big Data Tools (e.g., Spark, Hadoop) Is A Plus.Experience In Designing And Optimizing Generative AI Prompting Systems (e.g., ChatGPT, DALL-E). Knowledge Of Generative AI Concepts, Including Prompt Engineering And Fine-tuning Large Language Models. Strong Statistical And Mathematical Foundation, With The Ability To Apply Concepts To Solve Real-world Problems. Proficiency In A/B Testing, Regression Analysis, And Other Statistical Methods. Excellent Problem-solving And Critical Thinking Abilities. Strong Communication Skills To Articulate Insights Effectively To Diverse Audiences."
+```
+
+/api/find-alternative-jobs
+```bash
+curl.exe -X POST http://127.0.0.1:8000/api/find-alternative-jobs `
+>>   -H "Content-Type: application/json" `
+>>   --data-binary "@payload.json"
+```
+
 ## Rate Limiting
 
 | Endpoint | Limit |
