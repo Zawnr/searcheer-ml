@@ -1,8 +1,8 @@
-# Ini Alurnya
+# Ini AlurMLnya
 
 ### 1. **Preprocessing (di file folder utils)**
 
-Langkah pertama adalah membersihkan dan mempersiapkan data masukan:
+Langkah pertama adalah membersihkan dan mempersiapkan data input:
 
 * **Pemrosesan Teks:** Ini dilakukan di metode `preprocess_text` pada `EnhancedJobAnalyzer` di `analyzer.py`. Teks diubah menjadi huruf kecil, menghapus karakter non-alfanumerik, dan memproses teks menjadi format yang bersih.
 * **Ekstraksi dan Pencocokan Keterampilan:** Di `skills_utils.py`, keterampilan yang disebutkan dalam CV dan deskripsi pekerjaan dibandingkan. Keterampilan yang cocok diberi skor berdasarkan keberadaannya, dan persentase kecocokan dihitung.
