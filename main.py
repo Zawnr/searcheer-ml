@@ -41,14 +41,15 @@ def main():
     print("\n" + "-"*50)
     print("LOADING JOB DATASET")
     print("-"*50)
-    dataset_path = "D:/dbs_coding_camp/ml-capstone/data/fake_job_postings.csv"
+    dataset_path = "D:/dbs_coding_camp/ml-capstone/data/cleaned_fake_job_postings.csv"
     if not os.path.exists(dataset_path):
         print(f"❌ Dataset not found: {dataset_path}")
         return
 
     job_data = pd.read_csv(dataset_path)
+    print(job_data.columns)
     job_data = job_data[job_data.get("fraudulent", 0) == 0]
-    job_data = job_data.dropna(subset=['title', 'description'])
+    job_data = job_data.dropna(subset=['job_id','title', 'description'])
 
     #analyzer
     print("\n" + "-"*50)
