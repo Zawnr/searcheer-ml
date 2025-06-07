@@ -131,7 +131,7 @@ curl -X POST http://localhost:8000/api/cv/upload \
 
 **POST** `/api/analyze/cv-with-job`
 
-Menganalisis kompatibilitas CV file dengan detail pekerjaan.
+Menganalisis kecocokan file CV dengan job description.
 
 **Content-Type:** `multipart/form-data`
 
