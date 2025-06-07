@@ -789,7 +789,7 @@ def find_alternative_jobs():
             )
         
         analysis_results = data['analysis_results']
-        top_n = min(max(data.get('top_n', 5), 1), 20)  
+        top_n = min(max(data.get('top_n', 6), 1), 25)  
         
         if job_data is None or len(job_data) == 0:
             return create_standard_response(
