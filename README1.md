@@ -77,7 +77,8 @@ Menampilkan informasi dasar API dan daftar endpoint yang tersedia.
   "endpoints": {
     "health": "/api/health",
     "upload_cv": "/api/cv/upload",
-    
+    "analyze_cv_with_job": "/api/analyze/cv-with-job",
+    "find_alternative_jobs":"/api/find-alternative-jobs"
   }
 }
 ```
@@ -295,9 +296,8 @@ Menampilkan dokumentasi API.
   "rate_limits": {
     "default": "100 requests per hour",
     "upload_cv": "10 requests per minute",
-    "analyze_compatibility": "30 requests per minute",
     "analyze_cv_with_job": "10 requests per minute",
-    "analyze_flexible": "10 requests per minute"
+    "find_alternative_jobs": "10 request per minute"
   }
 }
 ```
