@@ -249,6 +249,10 @@ def perform_analysis(cv_text: str, job_title: str, job_description: str) -> dict
         if language_result['detected_language'] != 'en':
             raise ValueError("Job description must be in English")
         
+        title_lang_result = validate_english_text(job_title, text_type="Job Title")
+        if title_lang_result['detected_language'] != 'en':
+            raise ValueError("Job title must be in English")
+        
         import signal
         
         def timeout_handler(signum, frame):
@@ -371,6 +375,40 @@ def perform_analysis(cv_text: str, job_title: str, job_description: str) -> dict
 
 def perform_fallback_analysis(cv_text: str, job_title: str, job_description: str) -> dict:
     logger.info("Using fallback analysis method")
+
+    try:
+        job_lang_result = validate_english_text(job_description, text_type="Job Description")
+        if job_lang_result['detected_language'] != 'en':
+            raise ValueError(f"Job description language validation failed: {job_lang_result['message']}")
+        
+        title_lang_result = validate_english_text(job_title, text_type="Job Title")
+        if title_lang_result['detected_language'] != 'en':
+            raise ValueError(f"Job title language validation failed: {title_lang_result['message']}")
+        
+        cv_lang_result = validate_english_text(cv_text, text_type="CV")
+        if cv_lang_result['detected_language'] != 'en':
+            raise ValueError(f"CV language validation failed: {cv_lang_result['message']}")
+    except Exception as lang_error:
+        logger.error(f"Language validation error in fallback: {lang_error}")
+        
+        return {
+            'overall_score': 0.0,
+            'text_similarity': 0.0,
+            'skill_match': 0.0,
+            'experience_match': 0.0,
+            'education_match': 0.0,
+            'industry_match': 0.0,
+            'recommendation_level': "LANGUAGE_ERROR",
+            'matched_skills': [],
+            'missing_skills': [],
+            'tips': [str(lang_error)],
+            'confidence_score': 0.0,
+            'analysis_metadata': {
+                'fallback_mode': True,
+                'language_error': True,
+                'error_message': str(lang_error)
+            }
+        }
     
     cv_words = set(cv_text.lower().split())
     job_words = set(job_description.lower().split())
@@ -652,11 +690,21 @@ def analyze_cv_with_job():
         if len(job_title) > 200:
             validation_errors.append("Job title too long (max 200 characters)")
         
+        if job_title:
+            job_title_lang_result = validate_english_text(job_title, text_type="Job Title")
+            if job_title_lang_result['detected_language'] != 'en':
+                validation_errors.append(job_title_lang_result['message'])
+        
         if not job_description or len(job_description.split()) < 5:
             validation_errors.append("Job description must be at least 5 words")
         
         if len(job_description) > 10000:
             validation_errors.append("Job description too long (max 10000 characters)")
+        
+        if job_description:
+            job_lang_result = validate_english_text(job_description, text_type="Job Description")
+            if job_lang_result['detected_language'] != 'en':
+                validation_errors.append(job_lang_result['message'])
         
         if validation_errors:
             return create_standard_response(
@@ -689,11 +737,20 @@ def analyze_cv_with_job():
                 status_code=400
             )
         
+        #validasi bahasa 
+        cv_lang_result = validate_english_text(cv_text, text_type="CV")
+        if cv_lang_result['detected_language'] != 'en':
+            return create_standard_response(
+                False, cv_lang_result['message'],
+                errors=[cv_lang_result['message']],
+                status_code=400
+            )
+        
         #membersihkan data input
         job_title = clean_text_safe(job_title)
         job_description = clean_text_safe(job_description)
         
-        #memeriksa format apakah friendly ATS
+        #memeriksa format apakah ATS
         ats_compatible, ats_issues, ats_score = is_ats_friendly(cv_text)
         if not ats_compatible:
             return create_standard_response(
@@ -709,6 +766,16 @@ def analyze_cv_with_job():
             )
         
         analysis_result = perform_analysis(cv_text, job_title, job_description)
+
+        if (analysis_result.get('recommendation_level') == 'LANGUAGE_ERROR' 
+            or analysis_result.get('analysis_metadata', {}).get('language_error')):
+            
+            error_message = analysis_result.get('analysis_metadata', {}).get('error_message', 'Language validation failed')
+            return create_standard_response(
+                False, "Language validation failed",
+                errors=[error_message],
+                status_code=400
+            )
         
         response_data = {
             "cv_analysis": {
@@ -893,20 +960,16 @@ def create_app():
             os.makedirs(directory, exist_ok=True)
             logger.info(f"Directory ensured: {directory}")
         
-        # Set Flask configurations
         app.config['MAX_CONTENT_LENGTH'] = config.MAX_FILE_SIZE
         app.config['SECRET_KEY'] = config.SECRET_KEY
         app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
         
-        # Validate secret key
         if config.SECRET_KEY == "your-secret-key-change-this":
             logger.warning("Using default secret key! Change this in production!")
         
-        # Initialize analyzer
         logger.info("Initializing job analyzer...")
         initialize_analyzer()
         
-        # Final health check
         if job_data is None:
             logger.error("Failed to load job dataset!")
         else:
@@ -918,11 +981,8 @@ def create_app():
         logger.error(f"Application creation failed: {e}", exc_info=True)
         raise
 
-# Cleanup function for graceful shutdown
 def cleanup_on_exit():
-    """Clean up resources on application exit."""
     try:
-        # Clean up temporary files
         if os.path.exists(config.TEMP_FOLDER):
             shutil.rmtree(config.TEMP_FOLDER, ignore_errors=True)
             logger.info("Cleaned up temporary files")
@@ -935,7 +995,6 @@ if __name__ == '__main__':
 
     try:
         application = create_app()
-    
         if config.DEBUG:
             logger.info("Starting development server...")
             application.run(
@@ -943,7 +1002,7 @@ if __name__ == '__main__':
                 port=int(os.getenv('PORT', 8000)),
                 debug=True,
                 threaded=True,
-                use_reloader=False 
+                use_reloader=False  
             )
         else:
             logger.info("Starting production server...")
