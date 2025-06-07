@@ -27,10 +27,10 @@ class Config:
     MAX_REQUESTS_PER_MINUTE = int(os.getenv("MAX_REQUESTS_PER_MINUTE", 30))
     ENABLE_NEURAL_NETWORK = os.getenv("ENABLE_NEURAL_NETWORK", "true").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this") 
+    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")  
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
     TEMP_FOLDER = os.getenv("TEMP_FOLDER", "temp")
-    MAX_CV_TEXT_LENGTH = int(os.getenv("MAX_CV_TEXT_LENGTH", 50000))  
+    MAX_CV_TEXT_LENGTH = int(os.getenv("MAX_CV_TEXT_LENGTH", 50000))  # Limit CV text length
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
 config = Config()
@@ -162,13 +162,26 @@ def initialize_analyzer():
             try:
                 job_data = pd.read_csv(config.DATASET_PATH)
                 
+                logger.info(f"Dataset columns: {job_data.columns.tolist()}")
+
                 initial_count = len(job_data)
                 job_data = job_data[job_data.get("fraudulent", 0) == 0]
-                job_data = job_data.dropna(subset=['title', 'description'])
-                
-                job_data = job_data[job_data['title'].str.len() > 2]
-                job_data = job_data[job_data['description'].str.len() > 50]
-                
+                required_columns = ['title', 'description']
+                missing_columns = [col for col in required_columns if col not in job_data.columns]
+                if missing_columns:
+                    logger.error(f"Missing required columns: {missing_columns}")
+                    job_data = create_mock_dataset()
+                else:
+                    job_data = job_data.dropna(subset=required_columns)
+                    
+                    job_data = job_data[job_data['title'].str.len() > 2]
+                    job_data = job_data[job_data['description'].str.len() > 50]
+                    
+                    if 'job_id' not in job_data.columns and 'id' not in job_data.columns:
+                        job_data = job_data.reset_index()
+                        job_data['job_id'] = job_data.index + 1
+                        logger.info("Created job_id column using index")
+                    
                 final_count = len(job_data)
                 logger.info(f"Dataset loaded: {final_count}/{initial_count} valid jobs")
                 
@@ -191,6 +204,7 @@ def initialize_analyzer():
 def create_mock_dataset() -> pd.DataFrame:
     """membuat mock dataset untuk testing"""
     mock_data = {
+        'job_id': [1, 2, 3, 4, 5, 6],
         'title': [
             'Software Developer', 'Data Scientist', 'ML Engineer', 
             'Frontend Developer', 'Backend Developer', 'Full Stack Developer'
@@ -873,9 +887,7 @@ def api_documentation():
     return jsonify(docs)
 
 def create_app():
-    """Enhanced application factory with better error handling."""
     try:
-        # Create necessary directories
         directories = [config.UPLOAD_FOLDER, config.TEMP_FOLDER, 'logs']
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
@@ -918,15 +930,12 @@ def cleanup_on_exit():
         logger.error(f"Cleanup error: {e}")
 
 if __name__ == '__main__':
-    # Register cleanup function
     import atexit
     atexit.register(cleanup_on_exit)
-    
-    # Create and run the application
+
     try:
         application = create_app()
-        
-        # Run with different configurations for development vs production
+    
         if config.DEBUG:
             logger.info("Starting development server...")
             application.run(
@@ -934,11 +943,10 @@ if __name__ == '__main__':
                 port=int(os.getenv('PORT', 8000)),
                 debug=True,
                 threaded=True,
-                use_reloader=False  # Avoid double initialization
+                use_reloader=False 
             )
         else:
             logger.info("Starting production server...")
-            # In production, use a proper WSGI server like Gunicorn
             application.run(
                 host='0.0.0.0',
                 port=int(os.getenv('PORT', 8000)),
