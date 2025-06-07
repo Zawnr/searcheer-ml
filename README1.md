@@ -1,54 +1,79 @@
-**Version**: 2.2.0  
-**Base URL**: `http://localhost:8000`  
+
+# Searcheer
+
+**Version**: `2.2.0`
+**Base URL**: `http://localhost:8000`
 **Content-Type**: `application/json` (untuk JSON endpoints), `multipart/form-data` (untuk file upload)
 
+---
+
 ## Cara Menjalankan
-#### Install dependensi
+
+### 1. Install Dependensi
+
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
-#### Menjalankan proyek ML
+
+### 2. Menjalankan Proyek Machine Learning
+
 ```bash
 python main.py
 ```
-#### Menjalankan API
+
+### 3. Menjalankan REST API
+
 ```bash
 python api.py
 ```
-#### Menjalankan curl API
-**GET**
+
+---
+
+## Contoh Pengujian dengan cURL
+
+### Health Check
+
 ```bash
 curl http://127.0.0.1:8000/api/health
 ```
-**POST**
 
-/api/cv/upload
+### Upload CV
+
 ```bash
-curl.exe -X POST http://127.0.0.1:8000/api/cv/upload -F "file=@D:/dbs_coding_camp/data testing/Insania Cindy Puan Fadilahsari-resume (2).pdf"
+curl.exe -X POST http://127.0.0.1:8000/api/cv/upload -F "file=@/path/to/cv.pdf"
 ```
 
-/api/analyze/cv-with-job
+### Analisis CV vs Job Description
+
 ```bash
- curl.exe -X POST "http://127.0.0.1:8000/analyze_job" -F "job_title=Data Scientist" -F "job_description=Deskripsi Pekerjaan  Design, develop, and implement machine learning models and algorithms to address business challenges. Analyze large and complex datasets to extract actionable insights that drive decision-making. Ensure data quality and accuracy through proper validation and testing processes. Collaborate with cross-functional teams to identify data needs, define problems, and implement solutions.  Develop predictive models to anticipate user behavior and optimize product and business outcomes. Create compelling visualizations and reports to communicate findings to technical and non-technical stakeholders. Research and stay updated with the latest advancements in data science, machine learning, and generative AI.  Design and optimize generative AI systems, including developing and fine-tuning prompts for tools like ChatGPT or DALL-E. Work on integrating generative AI models into business processes to enhance user experiences and drive innovation. Collaborate with product teams to transform data and machine learning models into robust, scalable, and user-centric AI products.  Kualifikasi Bachelor’s Or Master’s Degree In Computer Science, Data Science, Statistics, Mathematics, Or Related Field. At Least 1-3 Years Of Experience In Data Science Or Related Fields. Proficiency In Python, R, Or Other Programming Languages Used For Data Science.Strong Command Of SQL And Familiarity With Cloud-based Databases Like Google BigQuery.  Experience With Machine Learning Frameworks (e.g., Scikit-learn, TensorFlow, PyTorch). Expertise In Data Visualization Tools (e.g., Looker, Tableau, Power BI). Familiarity With Big Data Tools (e.g., Spark, Hadoop) Is A Plus.Experience In Designing And Optimizing Generative AI Prompting Systems (e.g., ChatGPT, DALL-E). Knowledge Of Generative AI Concepts, Including Prompt Engineering And Fine-tuning Large Language Models. Strong Statistical And Mathematical Foundation, With The Ability To Apply Concepts To Solve Real-world Problems. Proficiency In A/B Testing, Regression Analysis, And Other Statistical Methods. Excellent Problem-solving And Critical Thinking Abilities. Strong Communication Skills To Articulate Insights Effectively To Diverse Audiences."
+curl.exe -X POST "http://127.0.0.1:8000/api/analyze/cv-with-job" \
+  -F "file=@/path/to/cv.pdf" \
+  -F "job_title=Data Scientist" \
+  -F "job_description=Deskripsi lengkap pekerjaan..."
 ```
 
-/api/find-alternative-jobs
+### Rekomendasi Pekerjaan Alternatif
+
 ```bash
-curl.exe -X POST http://127.0.0.1:8000/api/find-alternative-jobs `
->>   -H "Content-Type: application/json" `
->>   --data-binary "@payload.json"
+curl.exe -X POST http://127.0.0.1:8000/api/find-alternative-jobs \
+  -H "Content-Type: application/json" \
+  --data-binary "@payload.json"
 ```
+
+---
 
 ## Rate Limiting
 
-| Endpoint | Limit |
-|----------|-------|
-| Default | 100 requests/hour |
-| `/api/cv/upload` | 10 requests/minute |
-| `/api/analyze/cv-with-job` | 10 requests/minute |
-| `/api/find-alternative-jobs` | 10 requests/minute |
+| Endpoint                     | Limit             |
+| ---------------------------- | ----------------- |
+| Semua endpoint (default)     | 100 requests/jam  |
+| `/api/cv/upload`             | 10 requests/menit |
+| `/api/analyze/cv-with-job`   | 10 requests/menit |
+| `/api/find-alternative-jobs` | 10 requests/menit |
 
-## Format Standard Response 
+---
+
+## Format Standard Response
 
 ```json
 {
@@ -61,35 +86,26 @@ curl.exe -X POST http://127.0.0.1:8000/api/find-alternative-jobs `
 }
 ```
 
-## Endpoints
+---
 
-### 1. Root Endpoint
+## API Endpoints
+
+### 1. Root
 
 **GET** `/`
 
-Menampilkan informasi dasar API dan daftar endpoint yang tersedia.
+Menampilkan info API dan daftar endpoint.
 
-**Response:**
-```json
-{
-  "message": "Job Compatibility Analyzer REST API v2.2.0",
-  "documentation": "/api/docs",
-  "endpoints": {
-    "health": "/api/health",
-    "upload_cv": "/api/cv/upload",
-    "analyze_cv_with_job": "/api/analyze/cv-with-job",
-    "find_alternative_jobs":"/api/find-alternative-jobs"
-  }
-}
-```
+---
 
 ### 2. Health Check
 
 **GET** `/api/health`
 
-Memeriksa status kesehatan API dan komponen-komponennya.
+Cek status API dan model.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -98,51 +114,51 @@ Memeriksa status kesehatan API dan komponen-komponennya.
     "status": "healthy",
     "analyzer_ready": true,
     "dataset_loaded": true,
-    "dataset_size": 15000,
-    "timestamp": "2024-01-15T10:30:00.000Z"
-  },
-  "errors": [],
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "request_id": "uuid-here"
+    "dataset_size": 15000
+  }
 }
 ```
+
+---
 
 ### 3. Upload CV
 
 **POST** `/api/cv/upload`
 
-Upload file CV (PDF) dan ekstraksi teks dengan validasi ATS-friendly.
+Ekstraksi teks dari CV PDF dan validasi ATS.
 
-**Content-Type:** `multipart/form-data`
+* **Content-Type**: `multipart/form-data`
+* **Parameter**: `file` (PDF, max 10MB)
 
-**Parameters:**
-- `file` (required): File PDF CV
+**Success Response:**
 
-**Example Request:**
-```bash
-curl -X POST http://localhost:8000/api/cv/upload \
-  -F "file=@/path/to/cv.pdf"
-```
-
-**Success Response (200):**
 ```json
 {
+  "api_version": "2.2.0",
   "success": true,
   "message": "CV processed successfully",
   "data": {
-    "cv_text": "Extracted CV content...",
-    "ats_score": 85.5,
-    "word_count": 450,
+    "ats_compatible": true,
+    "ats_score": 78.5,
+    "character_count": 7669,
+    "word_count": 1015,
     "language_detected": "en",
-    "readability_score": 0.855
+    "readability_score": 0.785,
+    "cv_text": "INSANIA CINDY PUAN FADILAHSARI ...", 
+    "file_info": {
+      "filename": "Insania_Cindy_Puan_Fadilahsari-resume_2.pdf",
+      "size_bytes": 93608,
+      "processing_time": 0.8682496547698975
+    }
   },
   "errors": [],
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "request_id": "uuid-here"
+  "request_id": "7805cb60-4c32-4c77-986d-0d3e24bdf2d4",
+  "timestamp": "2025-06-07T12:27:40.919350Z"
 }
 ```
 
-**Error Response (400) - ATS Issues:**
+**Error Response (400 - ATS Issues):**
+
 ```json
 {
   "success": false,
@@ -150,92 +166,99 @@ curl -X POST http://localhost:8000/api/cv/upload \
   "data": {
     "ats_score": 45.0,
     "ats_issues": [
-      "Missing essential sections (Contact, Experience, Education, Skills)",
-      "No valid email address found"
-    ],
-    "word_count": 120,
-    "cv_preview": "CV content preview..."
-  },
-  "errors": [
-    "Missing essential sections (Contact, Experience, Education, Skills)",
-    "No valid email address found"
-  ]
+      "Missing essential sections",
+      "No valid email address"
+    ]
+  }
 }
 ```
+
+---
 
 ### 4. Analyze CV with Job
 
 **POST** `/api/analyze/cv-with-job`
 
-Menganalisis kecocokan file CV dengan job description.
+Menganalisis kecocokan CV dengan deskripsi pekerjaan.
 
-**Content-Type:** `multipart/form-data`
+* **Content-Type**: `multipart/form-data`
+* **Parameters**:
 
-**Parameters:**
-- `file` (required): File PDF CV
-- `job_title` (required): Judul pekerjaan (min 3 karakter)
-- `job_description` (required): Deskripsi pekerjaan (min 5 kata)
+  * `file`: CV dalam format PDF
+  * `job_title`: Judul pekerjaan
+  * `job_description`: Deskripsi pekerjaan
 
-**Example Request:**
-```bash
-curl -X POST http://localhost:8000/api/analyze/cv-with-job \
-  -F "file=@/path/to/cv.pdf" \
-  -F "job_title=Senior Data Scientist" \
-  -F "job_description=We are looking for an experienced data scientist with Python, SQL, machine learning expertise..."
-```
+**Response:**
 
-**Success Response (200):**
 ```json
 {
+  "api_version": "2.2.0",
   "success": true,
   "message": "CV analysis and job compatibility completed successfully",
   "data": {
+    "compatibility_analysis": {
+      "confidence_score": 0.3,
+      "education_match": 50.0,
+      "experience_match": 50.0,
+      "industry_match": 50.0,
+      "skill_match": 80.0,
+      "text_similarity": 100.0,
+      "overall_score": 100.0,
+      "recommendation_level": "MODERATE_MATCH",
+      "matched_skills": [],
+      "missing_skills": [],
+      "analysis_metadata": {
+        "common_words_count": 52,
+        "fallback_mode": true
+      },
+      "tips": [
+        "Analysis performed with limited capabilities. Consider uploading a more detailed CV."
+      ]
+    },
     "cv_analysis": {
-      "ats_score": 85.5,
-      "word_count": 450,
+      "ats_compatible": true,
+      "ats_score": 78.5,
+      "character_count": 7669,
+      "word_count": 1015,
       "language_detected": "en"
     },
-    "compatibility_analysis": {
-      "overall_score": 78.5,
-      "text_similarity": 65.2,
-      "skill_match": 82.0,
-      "experience_match": 75.0,
-      "education_match": 80.0,
-      "industry_match": 85.0,
-      "recommendation_level": "STRONG_MATCH",
-      "matched_skills": ["python", "sql", "machine learning"],
-      "missing_skills": ["tensorflow", "aws"],
-      "tips": [
-        "Highlight your matching skills prominently",
-        "Prepare specific examples of relevant experience",
-        "Apply with confidence",
-        "Research the company culture and values"
-      ],
-      "confidence_score": 0.78
+    "job_analysis": {
+      "title": "Data Scientist",
+      "description_length": 2207,
+      "description_word_count": 289
+    },
+    "processing_info": {
+      "analysis_time": 0.5449292659759521,
+      "analyzer_version": "2.2.0",
+      "neural_network_used": true
     }
   },
   "errors": [],
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "request_id": "uuid-here"
+  "request_id": "aecb3dd6-3b6e-49eb-938d-c3c21aeeba6d",
+  "timestamp": "2025-06-07T12:25:41.691584Z"
 }
+
 ```
+
+---
 
 ### 5. Find Alternative Jobs
 
 **POST** `/api/find-alternative-jobs`
 
-Mencari rekomendasi pekerjaan berdasarkan hasil analisis CV.
+Merekomendasikan pekerjaan lain yang lebih cocok berdasarkan hasil analisis.
 
-**Content-Type:** `application/json`
+* **Content-Type**: `application/json`
 
-**Request Body:**
+**Request:**
+
 ```json
 {
   "cv_text": "CV content here...",
   "analysis_results": {
     "overall_score": 78.5,
     "skills_analysis": {
-      "matched_skills": [["python", 1.0], ["sql", 1.0]],
+      "matched_skills": [["python", 1.0]],
       "missing_skills": [["tensorflow", 1.0]],
       "skill_match_percentage": 82.0
     }
@@ -244,120 +267,111 @@ Mencari rekomendasi pekerjaan berdasarkan hasil analisis CV.
 }
 ```
 
-**Success Response (200):**
+**Response:**
+
 ```json
 {
+  "api_version": "2.2.0",
   "success": true,
-  "message": "Alternative job recommendations found",
+  "message": "Found 5 alternative job recommendations",
   "data": {
+    "metadata": {
+      "algorithm_version": "2.2.0",
+      "search_time": 155.20675992965698
+    },
     "recommended_jobs": [
       {
-        "title": "Machine Learning Engineer",
-        "company": "Tech Corp",
-        "description": "Job description...",
-        "compatibility_score": 85.2,
-        "matched_skills": ["python", "sql", "machine learning"],
-        "location": "Remote"
+        "job_title": "VP Engineering Operations",
+        "description": "Qubit: Cutting Edge Big Data Engineering. Qubit's platform collects, stores and processes over 1 billion events daily...",
+        "score": 0.5656785101398439,
+        "rank": 1
       },
       {
-        "title": "Data Analyst",
-        "company": "Analytics Inc",
-        "description": "Job description...",
-        "compatibility_score": 79.8,
-        "matched_skills": ["python", "sql"],
-        "location": "New York"
+        "job_title": "Data Scientist",
+        "description": "We want to add some fresh talent to our data team to make sure it can fully continue its mission of ...",
+        "score": 0.5604210255062867,
+        "rank": 2
+      },
+      {
+        "job_title": "Data Scientist",
+        "description": "We want to add some talent to our data team to make sure it can continue its mission of turning the ...",
+        "score": 0.5600619178953007,
+        "rank": 3
+      },
+      {
+        "job_title": "Software Engineer - GIS Specialist",
+        "description": "Summary: FHU is currently looking to expand our GIS services to include software application develop...",
+        "score": 0.5537946697770709,
+        "rank": 4
+      },
+      {
+        "job_title": "Graduate Software Engineer",
+        "description": "Qubit: Cutting Edge Big Data Engineering. Qubit is opening its third international office in Lahore, P...",
+        "score": 0.545438459847018,
+        "rank": 5
       }
-    ]
+    ],
+    "search_parameters": {
+      "cv_word_count": 1015,
+      "dataset_size": 17001,
+      "top_n": 5
+    }
   },
   "errors": [],
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "request_id": "uuid-here"
+  "request_id": "06638f91-f29e-4453-9362-c376e6a356d0",
+  "timestamp": "2025-06-07T09:51:36.057251Z"
 }
+
 ```
+
+---
 
 ### 6. API Documentation
 
 **GET** `/api/docs`
 
-Menampilkan dokumentasi API.
+Menampilkan dokumentasi lengkap API.
 
-**Response:**
-```json
-{
-  "title": "Job Compatibility Analyzer REST API",
-  "version": "2.2.0",
-  "description": "REST API for analyzing CV compatibility with job descriptions",
-  "endpoints": {
-    "GET /": "Root endpoint with basic info",
-    "GET /api/health": "Health check endpoint",
-    "POST /api/cv/upload": "Upload and process CV file",
-    
-  },
-  "rate_limits": {
-    "default": "100 requests per hour",
-    "upload_cv": "10 requests per minute",
-    "analyze_cv_with_job": "10 requests per minute",
-    "find_alternative_jobs": "10 request per minute"
-  }
-}
-```
+---
 
-## Error Codes
+## Error Handling
 
-| HTTP Code | Description | Common Causes |
-|-----------|-------------|---------------|
-| 400 | Bad Request | Invalid input, missing required fields, file validation failed |
-| 404 | Not Found | Endpoint tidak ditemukan |
-| 405 | Method Not Allowed | HTTP method tidak didukung |
-| 413 | Payload Too Large | File size melebihi 10MB |
-| 429 | Too Many Requests | Rate limit exceeded |
-| 500 | Internal Server Error | Server error, analyzer not ready |
+| HTTP Code | Deskripsi             | Penyebab Umum                        |
+| --------- | --------------------- | ------------------------------------ |
+| 400       | Bad Request           | Input tidak valid, file salah format |
+| 404       | Not Found             | Endpoint tidak ditemukan             |
+| 405       | Method Not Allowed    | HTTP method salah                    |
+| 413       | Payload Too Large     | File lebih dari 10MB                 |
+| 429       | Too Many Requests     | Melebihi limit                       |
+| 500       | Internal Server Error | Kesalahan server / analisis gagal    |
 
-## Error Response Examples
-
-**400 - Validation Error:**
-```json
-{
-  "success": false,
-  "message": "Invalid job title",
-  "data": null,
-  "errors": ["Job title must be at least 3 characters"],
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "request_id": "uuid-here"
-}
-```
-
-**429 - Rate Limit:**
-```json
-{
-  "success": false,
-  "message": "Rate limit exceeded",
-  "data": null,
-  "errors": ["Too many requests. Please try again later."],
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "request_id": "uuid-here"
-}
-```
+---
 
 ## ATS Compatibility Scoring
 
+| Kriteria               | Bobot | Deskripsi                              |
+| ---------------------- | ----- | -------------------------------------- |
+| Essential Sections     | 30    | Contact, Experience, Education, Skills |
+| Contact Info           | 20    | Email dan nomor telepon valid          |
+| Panjang Konten         | 15    | Minimal 200 kata                       |
+| Struktur Profesional   | 15    | Tanggal, gelar, istilah teknis         |
+| Kata Kunci Profesional | 10    | Kata kerja, kata spesifik industri     |
+| Validasi Karakter      | 10    | Minim karakter non-standar             |
 
-| Kriteria | Bobot | Deskripsi |
-|----------|-------|-----------|
-| Essential Sections | 30 poin | Contact, Experience, Education, Skills |
-| Contact Information | 20 poin | Valid email dan phone number |
-| Content Length | 15 poin | Minimum 200 kata |
-| Structure Indicators | 15 poin | Dates, degrees, professional terms |
-| Professional Keywords | 10 poin | Action words, experience descriptions |
-| Character Validation | 10 poin | Minimal special characters |
+**Note**:
 
-**ATS Score ≥ 70 + Issues ≤ 2 = ATS Compatible**
+* **ATS Score ≥ 70** dan **≤ 2 masalah** dianggap **ATS Compatible**
+
+---
 
 ## File Requirements
 
-### CV Upload Requirements
-- **Format**: PDF only
-- **Size**: Maximum 10MB
-- **Language**: Harus berbahasa inggris
-- **Content**: Harus informatif (minimum 100 kata)
-- **Structure**: Harus memenuhi format standard
+### CV Upload
+
+* **Format**: PDF
+* **Ukuran Maks**: 10MB
+* **Bahasa**: Inggris
+* **Konten**: Minimal 100 kata
+* **Struktur**: Harus mengandung section penting
+
+---
