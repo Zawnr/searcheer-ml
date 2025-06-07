@@ -97,23 +97,72 @@ def generate_detailed_analysis_report(cv_text, job_title, job_description, analy
         'skills_analysis': skills
     }
 
-def find_alternative_jobs_for_cv(job_data, cv_text, results, top_n=5):
 
+def find_alternative_jobs_for_cv(job_data, cv_text, results, top_n=5):
     if not results.get('skills_analysis'):
-        print("⚠️ Error: skills analysis not found in results.")
-        return
+        return []
     
     cv_text = cv_text.lower()
     matched_skills = [s for s, _ in results['skills_analysis']['matched_skills']]
     matches = []
-    for _, job in job_data.iterrows():
-        text = f"{job['title']} {job['description']}".lower()
-        if len(text) < 30:
+
+    #ini sengaja ku tambahin untuk debug aja
+    print(f"Available columns in job_data: {job_data.columns.tolist()}")
+    
+    id_column = None
+    if 'job_id' in job_data.columns:
+        id_column = 'job_id'
+        print("Using 'job_id' column")
+    elif 'id' in job_data.columns:
+        id_column = 'id'
+        print("Using 'id' column")
+    else:
+        id_column = 'index'
+        print("Using index as job_id fallback")
+    
+    for idx, job in job_data.iterrows():
+        try:
+            title = str(job.get('title', 'Unknown Title'))
+            description = str(job.get('description', ''))
+            
+            text = f"{title} {description}".lower()
+            if len(text) < 30:
+                continue
+            
+            skill_match = sum([1 for s in matched_skills if s in text]) / max(len(matched_skills), 1)
+            text_sim = calculate_text_similarity(cv_text, text, TfidfVectorizer())
+            score = 0.6 * text_sim + 0.4 * skill_match
+            
+            if id_column == 'job_id':
+                job_id = job.get('job_id', f"job_{idx}")
+            elif id_column == 'id':
+                job_id = job.get('id', f"job_{idx}")
+            else:  
+                job_id = f"job_{idx}"
+            
+            matches.append((score, title, description, str(job_id)))
+            
+        except Exception as e:
+            print(f"Error processing job at index {idx}: {e}")
             continue
-        skill_match = sum([1 for s in matched_skills if s in text]) / max(len(matched_skills), 1)
-        text_sim = calculate_text_similarity(cv_text, text, TfidfVectorizer())
-        score = 0.6 * text_sim + 0.4 * skill_match
-        matches.append((score, job['title'], job['description']))
+    
     matches = sorted(matches, key=lambda x: x[0], reverse=True)[:top_n]
-    for i, (score, title, desc) in enumerate(matches, 1):
-        print(f"{i}. {title} (Score: {score:.2f})\n   {desc[:100]}...")
+    
+    recommended_jobs = []
+    for i, (score, title, desc, job_id) in enumerate(matches, 1):
+        desc_preview = desc[:100] + "..." if len(desc) > 100 else desc
+        
+        job_recommendation = {
+            'rank': i,
+            'job_id': str(job_id),  
+            'job_title': title,
+            'score': round(float(score), 4),  
+            'description': desc_preview
+        }
+        
+        recommended_jobs.append(job_recommendation)
+        
+        #debug hasil report
+        print(f"Adding job {i}: ID={job_id}, Title={title[:50]}..., Score={score:.4f}")
+    
+    return recommended_jobs
