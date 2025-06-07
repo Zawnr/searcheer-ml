@@ -18,7 +18,7 @@ def main():
     print("-"*50)
     cv_text = upload_cv()
     if not cv_text:
-        print("❌ CV upload failed. Exiting...")
+        print("CV upload failed. Exiting...")
         return
 
     # input job description
@@ -29,7 +29,7 @@ def main():
     job_description = input("Job Description (paste full text): \n").strip()
 
     if len(job_title) < 5 or len(job_description) < 50:
-        print("❌ Job title or description too short. Exiting...")
+        print("Job title or description too short. Exiting...")
         return
 
     job_lang_check = validate_english_text(job_description, "Job Description")
@@ -43,7 +43,7 @@ def main():
     print("-"*50)
     dataset_path = "D:/dbs_coding_camp/ml-capstone/data/cleaned_fake_job_postings.csv"
     if not os.path.exists(dataset_path):
-        print(f"❌ Dataset not found: {dataset_path}")
+        print(f"Dataset not found: {dataset_path}")
         return
 
     job_data = pd.read_csv(dataset_path)
@@ -61,7 +61,7 @@ def main():
     #men-generate report
     results = generate_detailed_analysis_report(cv_text, job_title, job_description, analyzer)
     if not results:
-        print("❌ Analysis failed. Exiting...")
+        print("Analysis failed. Exiting...")
         return
 
     # recommendasi
