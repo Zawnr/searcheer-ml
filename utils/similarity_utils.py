@@ -98,7 +98,7 @@ def generate_detailed_analysis_report(cv_text, job_title, job_description, analy
     }
 
 
-def find_alternative_jobs_for_cv(job_data, cv_text, results, top_n=5):
+def find_alternative_jobs_for_cv(job_data, cv_text, results, top_n=6):
     if not results.get('skills_analysis'):
         return []
     
