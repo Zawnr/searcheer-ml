@@ -271,43 +271,46 @@ Merekomendasikan pekerjaan lain yang lebih cocok berdasarkan hasil analisis.
 ```json
 {
   "api_version": "2.2.0",
-  "success": true,
-  "message": "Found 5 alternative job recommendations",
   "data": {
     "metadata": {
       "algorithm_version": "2.2.0",
-      "search_time": 155.20675992965698
+      "search_time": 162.5912845134735
     },
     "recommended_jobs": [
       {
+        "job_id": "2448",
         "job_title": "VP Engineering Operations",
-        "description": "Qubit: Cutting Edge Big Data Engineering. Qubit's platform collects, stores and processes over 1 billion events daily...",
-        "score": 0.5656785101398439,
-        "rank": 1
+        "description": "Qubit: Cutting Edge Big Data EngineeringQubit's platform collects, stores and processes over 1 billi...",
+        "rank": 1,
+        "score": 0.5657
       },
       {
+        "job_id": "7335",
         "job_title": "Data Scientist",
         "description": "We want to add some fresh talent to our data team to make sure it can fully continue its mission of ...",
-        "score": 0.5604210255062867,
-        "rank": 2
+        "rank": 2,
+        "score": 0.5604
       },
       {
+        "job_id": "15375",
         "job_title": "Data Scientist",
         "description": "We want to add some talent to our data team to make sure it can continue its mission of turning the ...",
-        "score": 0.5600619178953007,
-        "rank": 3
+        "rank": 3,
+        "score": 0.5601
       },
       {
+        "job_id": "16105",
         "job_title": "Software Engineer - GIS Specialist",
         "description": "Summary: FHU is currently looking to expand our GIS services to include software application develop...",
-        "score": 0.5537946697770709,
-        "rank": 4
+        "rank": 4,
+        "score": 0.5538
       },
       {
+        "job_id": "16212",
         "job_title": "Graduate Software Engineer",
-        "description": "Qubit: Cutting Edge Big Data Engineering. Qubit is opening its third international office in Lahore, P...",
-        "score": 0.545438459847018,
-        "rank": 5
+        "description": "Qubit: Cutting Edge Big Data EngineeringQubit is opening its third international office in Lahore, P...",
+        "rank": 5,
+        "score": 0.5454
       }
     ],
     "search_parameters": {
@@ -317,8 +320,10 @@ Merekomendasikan pekerjaan lain yang lebih cocok berdasarkan hasil analisis.
     }
   },
   "errors": [],
-  "request_id": "06638f91-f29e-4453-9362-c376e6a356d0",
-  "timestamp": "2025-06-07T09:51:36.057251Z"
+  "message": "Found 5 alternative job recommendations",
+  "request_id": "11bd204c-907e-43d3-883e-059eede442e6",
+  "success": true,
+  "timestamp": "2025-06-07T16:26:46.421090Z"
 }
 
 ```
