@@ -77,9 +77,7 @@ Menampilkan informasi dasar API dan daftar endpoint yang tersedia.
   "endpoints": {
     "health": "/api/health",
     "upload_cv": "/api/cv/upload",
-    "analyze_compatibility": "/api/analyze/compatibility",
-    "analyze_cv_with_job": "/api/analyze/cv-with-job",
-    "analyze_flexible": "/api/analyze/flexible"
+    
   }
 }
 ```
@@ -292,9 +290,7 @@ Menampilkan dokumentasi API.
     "GET /": "Root endpoint with basic info",
     "GET /api/health": "Health check endpoint",
     "POST /api/cv/upload": "Upload and process CV file",
-    "POST /api/analyze/compatibility": "Analyze compatibility (JSON input)",
-    "POST /api/analyze/cv-with-job": "Analyze CV file with job details (Form data)",
-    "POST /api/analyze/flexible": "Flexible analysis (file or text input)"
+    
   },
   "rate_limits": {
     "default": "100 requests per hour",
