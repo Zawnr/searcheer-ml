@@ -27,10 +27,10 @@ class Config:
     MAX_REQUESTS_PER_MINUTE = int(os.getenv("MAX_REQUESTS_PER_MINUTE", 30))
     ENABLE_NEURAL_NETWORK = os.getenv("ENABLE_NEURAL_NETWORK", "true").lower() == "true"
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")  # HARUS diganti di production
+    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this") 
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
     TEMP_FOLDER = os.getenv("TEMP_FOLDER", "temp")
-    MAX_CV_TEXT_LENGTH = int(os.getenv("MAX_CV_TEXT_LENGTH", 50000))  # Limit CV text length
+    MAX_CV_TEXT_LENGTH = int(os.getenv("MAX_CV_TEXT_LENGTH", 50000))  
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
 config = Config()
