@@ -11,7 +11,7 @@ def calculate_text_similarity(text1, text2, vectorizer):
             return 0.0
         return cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
     except Exception as e:
-        print(f"⚠️ Similarity calculation error: {e}")
+        print(f"Similarity calculation error: {e}")
         return 0.0
 
 def generate_detailed_analysis_report(cv_text, job_title, job_description, analyzer):
@@ -48,11 +48,11 @@ def generate_detailed_analysis_report(cv_text, job_title, job_description, analy
     #         print(f"\nNeural Network Prediction: {nn_score:.1f}%")
 
     print("\nSKILL ANALYSIS")
-    print("\n✅ Matched Skills:")
+    print("\nMatched Skills:")
     for skill, _ in skills['matched_skills']:
         print(f"   {skill}")
     
-    print("\n❌ Missing Skills (High Priority):")
+    print("\nMissing Skills (High Priority):")
     for skill, _ in skills['missing_skills']:
         print(f"   {skill}")
     
@@ -70,19 +70,19 @@ def generate_detailed_analysis_report(cv_text, job_title, job_description, analy
         print(f"   Total skills in CV: {cv_skills}")
 
     if total_score < 45:
-        print("❌ LOW MATCH. Consider alternative positions or significant upskilling.")
+        print("LOW MATCH. Consider alternative positions or significant upskilling.")
         print("Tips to improve:")
         print("• Focus on building fundamental skills first")
         print("• Look for entry-level positions in this field")
         print("• Consider career transition planning")
     elif total_score < 60:
-        print("🟡 MODERATE MATCH. Focus on skill development.")
+        print("MODERATE MATCH. Focus on skill development.")
         print("Tips to improve:")
         print("• Develop missing high-priority skills")
         print("• Gain relevant experience through projects")
         print("• Consider applying for similar junior roles")
     else:
-        print("✅ GOOD MATCH. You're a competitive candidate.")
+        print("GOOD MATCH. You're a competitive candidate.")
         print("Tips to improve:")
         print("• Highlight your matching skills in application")
         print("• Prepare examples demonstrating relevant experience")
