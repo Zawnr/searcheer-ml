@@ -188,7 +188,7 @@ curl -X POST http://localhost:8000/api/analyze/cv-with-job \
 
 **POST** `/api/find-alternative-jobs`
 
-Mencari rekomendasi pekerjaan alternatif berdasarkan hasil analisis CV.
+Mencari rekomendasi pekerjaan berdasarkan hasil analisis CV.
 
 **Content-Type:** `application/json`
 
@@ -243,7 +243,7 @@ Mencari rekomendasi pekerjaan alternatif berdasarkan hasil analisis CV.
 
 **GET** `/api/docs`
 
-Menampilkan dokumentasi API dalam format JSON.
+Menampilkan dokumentasi API.
 
 **Response:**
 ```json
