@@ -4,8 +4,6 @@
 **Base URL**: `http://localhost:8000`
 **Content-Type**: `application/json` (untuk JSON endpoints), `multipart/form-data` (untuk file upload)
 
-Searcheer adalah sistem AI yang menganalisis kompatibilitas CV dengan deskripsi pekerjaan menggunakan machine learning dan neural network. Sistem ini dapat mengekstraksi teks dari CV PDF, melakukan validasi ATS, menganalisis kecocokan dengan pekerjaan, dan memberikan rekomendasi pekerjaan alternatif.
-
 ---
 
 ## Fitur Utama
