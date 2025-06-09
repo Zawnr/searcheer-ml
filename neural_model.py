@@ -92,7 +92,7 @@ class JobCompatibilityNeuralNetwork:
         )
 
         self.is_trained = True
-        self.model.save("model/job_compatibility_model.h5")
+        self.model.save("model/capstone.h5")
         with open("model/tokenizer.pkl", "wb") as f:
             pickle.dump(self.tokenizer, f)
 
