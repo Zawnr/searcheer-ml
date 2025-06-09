@@ -215,7 +215,7 @@ Merekomendasikan pekerjaan alternatif berdasarkan analisis CV dan hasil neural n
       "skill_match_percentage": 82.0
     }
   },
-  "top_n": 5
+  "top_n": 6
 }
 ```
 
@@ -241,7 +241,7 @@ Merekomendasikan pekerjaan alternatif berdasarkan analisis CV dan hasil neural n
     "search_parameters": {
       "cv_word_count": 1015,
       "dataset_size": 17001,
-      "top_n": 5
+      "top_n": 6
     }
   }
 }
