@@ -16,6 +16,10 @@ def extract_comprehensive_skills_match(cv_text, job_text):
             matched.append((skill, weight))
         elif in_job:
             missing.append((skill, weight))
+    #buat debug doang
+    print(f"Matched skills: {matched}")
+    print(f"Missing skills: {missing}")
+    
     skill_match_pct = (len(matched) / max(len(matched) + len(missing), 1)) * 100
     return {
         'matched_skills': matched,
