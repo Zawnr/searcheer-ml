@@ -1,14 +1,96 @@
 def extract_comprehensive_skills_match(cv_text, job_text):
     skill_keywords = {
-        'python': 1.0, 'sql': 1.0, 'excel': 0.9, 'power bi': 1.0,
-        'tableau': 1.0, 'communication': 0.6, 'teamwork': 0.6,
-        'machine learning': 1.0, 'deep learning': 1.0, 'ai': 1.0,
-        'data analysis': 1.0, 'data science': 1.0
+    #it
+    'python': 1.0, 'sql': 1.0, 'excel': 0.9, 'power bi': 1.0, 'tableau': 1.0, 
+    'communication': 0.6, 'teamwork': 0.6, 'machine learning': 1.0, 'deep learning': 1.0, 
+    'ai': 1.0, 'data analysis': 1.0, 'data science': 1.0, 'artificial intelligence': 1.0, 
+    'javascript': 1.0, 'ruby': 1.0, 'html': 1.0, 'css': 1.0, 'react': 1.0, 'angular': 1.0, 
+    'node.js': 1.0, 'docker': 1.0, 'kubernetes': 1.0, 'swift': 1.0, 'cloud computing': 1.0, 
+    'aws': 1.0, 'gcp': 1.0, 'azure': 1.0, 'cybersecurity': 1.0, 'devops': 1.0, 'automation': 1.0, 
+    'linux': 1.0, 'networking': 1.0, 'ios development': 1.0, 'android development': 1.0, 'full stack': 1.0, 
+    'data visualization': 1.0, 'big data': 1.0, 'hadoop': 1.0, 'spark': 1.0, 'r': 1.0, 'scikit-learn': 1.0,
+    'tensorflow': 1.0, 'pytorch': 1.0, 'aws lambda': 1.0, 'microservices': 1.0, 'agile': 1.0,
+    'blockchain': 1.0, 'virtualization': 1.0,
+
+    #managemen
+    'leadership': 1.0, 'project management': 1.0, 'agile': 1.0, 'scrum': 1.0, 'stakeholder management': 1.0,
+    'time management': 0.9, 'risk management': 1.0, 'budgeting': 1.0, 'strategic planning': 1.0, 
+    'negotiation': 1.0, 'decision making': 1.0, 'team management': 1.0, 'resource management': 0.9,
+    'performance management': 1.0, 'change management': 1.0, 'corporate governance': 1.0, 
+    'business analysis': 1.0, 'coaching': 1.0, 'supply chain management': 1.0, 'lean management': 1.0, 
+    'quality management': 1.0, 'conflict resolution': 1.0, 'motivational skills': 1.0, 'mentoring': 1.0,
+
+    #marketing
+    'digital marketing': 1.0, 'content marketing': 1.0, 'seo': 1.0, 'sem': 1.0, 'email marketing': 1.0, 
+    'social media marketing': 1.0, 'affiliate marketing': 1.0, 'branding': 1.0, 'public relations': 1.0, 
+    'market research': 1.0, 'sales': 1.0, 'customer relationship management': 1.0, 'lead generation': 1.0, 
+    'salesforce': 1.0, 'account management': 1.0, 'b2b sales': 1.0, 'b2c sales': 1.0, 'customer service': 1.0, 
+    'event planning': 1.0, 'influencer marketing': 1.0, 'pricing strategy': 1.0, 'mobile marketing': 1.0, 
+    'market segmentation': 1.0, 'campaign management': 1.0, 'persuasion': 1.0, 'closing deals': 1.0,
+
+    #akuntan
+    'financial analysis': 1.0, 'accounting': 1.0, 'budgeting': 1.0, 'tax planning': 1.0, 'auditing': 1.0, 
+    'bookkeeping': 1.0, 'cash flow management': 1.0, 'investment analysis': 1.0, 'financial reporting': 1.0, 
+    'forensic accounting': 1.0, 'cost accounting': 1.0, 'finance management': 1.0, 'payroll management': 1.0, 
+    'm&a': 1.0, 'derivatives': 1.0, 'hedging': 1.0, 'capital budgeting': 1.0, 'asset management': 1.0,
+    'financial modeling': 1.0, 'financial planning': 1.0, 'equity research': 1.0, 'fundraising': 1.0, 
+    'investor relations': 1.0,
+
+    #kreatif
+    'graphic design': 1.0, 'ux/ui design': 1.0, 'adobe photoshop': 1.0, 'adobe illustrator': 1.0, 
+    'illustration': 1.0, 'web design': 1.0, 'brand identity': 1.0, 'motion graphics': 1.0, 
+    'videography': 1.0, 'photography': 1.0, 'creative direction': 1.0, 'product design': 1.0, 
+    'user research': 1.0, 'wireframing': 1.0, 'prototyping': 1.0, '3d modeling': 1.0, 'animation': 1.0, 
+    'fashion design': 1.0, 'interior design': 1.0, 'photography editing': 1.0, 'storytelling': 1.0, 
+    'visual communication': 1.0,
+
+    #softskill
+    'communication': 1.0, 'teamwork': 1.0, 'empathy': 1.0, 'active listening': 1.0, 'problem-solving': 1.0,
+    'critical thinking': 1.0, 'creativity': 1.0, 'adaptability': 1.0, 'conflict resolution': 1.0, 
+    'negotiation': 1.0, 'emotional intelligence': 1.0, 'collaboration': 1.0, 'resilience': 1.0, 
+    'decision-making': 1.0, 'time management': 1.0, 'stress management': 1.0, 'self-motivation': 1.0, 
+    'public speaking': 1.0, 'presentation skills': 1.0, 'mentoring': 1.0, 'coaching': 1.0, 
+    'leadership': 1.0, 'networking': 1.0, 'confidence': 1.0, 'cultural awareness': 1.0, 
+    'positivity': 1.0, 'organizational skills': 1.0, 'delegation': 1.0,
+
+    #sdm
+    'recruitment': 1.0, 'talent acquisition': 1.0, 'employee engagement': 1.0, 'hr strategy': 1.0, 
+    'compensation and benefits': 1.0, 'performance appraisal': 1.0, 'onboarding': 1.0, 
+    'training and development': 1.0, 'organizational development': 1.0, 'labor relations': 1.0, 
+    'conflict resolution': 1.0, 'hr analytics': 1.0, 'employee relations': 1.0, 'leadership development': 1.0, 
+    'workforce planning': 1.0, 'diversity and inclusion': 1.0, 'employee wellness': 1.0, 'hr management': 1.0, 
+
+    #kesehatan
+    'healthcare management': 1.0, 'patient care': 1.0, 'medical records': 1.0, 'healthcare policies': 1.0, 
+    'nursing': 1.0, 'clinical research': 1.0, 'hospital administration': 1.0, 'public health': 1.0, 
+    'epidemiology': 1.0, 'health education': 1.0, 'health safety': 1.0, 'mental health': 1.0, 
+    'emergency medical services': 1.0, 'infection control': 1.0, 'medical billing': 1.0, 'telemedicine': 1.0,
+
+    #pendidikan
+    'teaching': 1.0, 'curriculum development': 1.0, 'classroom management': 1.0, 'pedagogy': 1.0, 
+    'lesson planning': 1.0, 'e-learning': 1.0, 'tutoring': 1.0, 'education technology': 1.0, 
+    'training programs': 1.0, 'assessment and evaluation': 1.0, 'instructional design': 1.0, 
+    'special education': 1.0, 'student counseling': 1.0, 'language instruction': 1.0, 'adult education': 1.0, 
+
+    #hukum
+    'legal research': 1.0, 'contract law': 1.0, 'corporate law': 1.0, 'litigation': 1.0, 'compliance': 1.0, 
+    'intellectual property': 1.0, 'dispute resolution': 1.0, 'real estate law': 1.0, 'labor law': 1.0, 
+    'legal writing': 1.0, 'mediation': 1.0, 'arbitration': 1.0, 'regulatory affairs': 1.0, 'public law': 1.0,
+
+    #dll
+    'customer support': 1.0, 'operations management': 1.0, 'event planning': 1.0, 'supply chain': 1.0, 
+    'logistics': 1.0, 'procurement': 1.0, 'quality assurance': 1.0, 'field service': 1.0, 
+    'maintenance': 1.0, 'inventory management': 1.0, 'product management': 1.0, 'real estate': 1.0,
+    'sales operations': 1.0, 'sustainability': 1.0, 'food safety': 1.0, 'manufacturing': 1.0, 
+    'pharmaceuticals': 1.0, 'construction management': 1.0, 'hospitality management': 1.0, 
+    'tourism management': 1.0, 'transportation management': 1.0, 'environmental science': 1.0
     }
+
     cv_lower = cv_text.lower()
     job_lower = job_text.lower()
     matched = []
     missing = []
+
     for skill, weight in skill_keywords.items():
         in_cv = skill in cv_lower
         in_job = skill in job_lower
@@ -16,11 +98,13 @@ def extract_comprehensive_skills_match(cv_text, job_text):
             matched.append((skill, weight))
         elif in_job:
             missing.append((skill, weight))
+    
     #buat debug doang
     print(f"Matched skills: {matched}")
     print(f"Missing skills: {missing}")
-    
+
     skill_match_pct = (len(matched) / max(len(matched) + len(missing), 1)) * 100
+
     return {
         'matched_skills': matched,
         'missing_skills': missing,
