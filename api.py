@@ -381,9 +381,9 @@ def perform_fallback_analysis(cv_text: str, job_title: str, job_description: str
         if job_lang_result['detected_language'] != 'en':
             raise ValueError(f"Job description language validation failed: {job_lang_result['message']}")
         
-        title_lang_result = validate_english_text(job_title, text_type="Job Title")
-        if title_lang_result['detected_language'] != 'en':
-            raise ValueError(f"Job title language validation failed: {title_lang_result['message']}")
+        # title_lang_result = validate_english_text(job_title, text_type="Job Title")
+        # if title_lang_result['detected_language'] != 'en':
+        #     raise ValueError(f"Job title language validation failed: {title_lang_result['message']}")
         
         cv_lang_result = validate_english_text(cv_text, text_type="CV")
         if cv_lang_result['detected_language'] != 'en':
@@ -690,10 +690,10 @@ def analyze_cv_with_job():
         if len(job_title) > 200:
             validation_errors.append("Job title too long (max 200 characters)")
         
-        if job_title:
-            job_title_lang_result = validate_english_text(job_title, text_type="Job Title")
-            if job_title_lang_result['detected_language'] != 'en':
-                validation_errors.append(job_title_lang_result['message'])
+        # if job_title:
+        #     job_title_lang_result = validate_english_text(job_title, text_type="Job Title")
+        #     if job_title_lang_result['detected_language'] != 'en':
+        #         validation_errors.append(job_title_lang_result['message'])
         
         if not job_description or len(job_description.split()) < 5:
             validation_errors.append("Job description must be at least 5 words")
