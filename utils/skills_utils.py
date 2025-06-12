@@ -123,16 +123,21 @@ def extract_comprehensive_skills_match(cv_text, job_text):
     
     #overall score
     weights = {
-        'skill_match': 0.5,
-        'text_similarity': 0.3,
-        'experience_match': 0.2
+        'skill_match': 0.4,  
+        'text_similarity': 0.2,  
+        'experience_match': 0.25,  
+        'base_score': 0.15 
     }
     
     overall_score = (
         skill_match_pct * weights['skill_match'] +
         text_similarity * weights['text_similarity'] +
-        experience_match * weights['experience_match']
+        experience_match * weights['experience_match'] +
+        60 * weights['base_score']
     )
+
+    overall_score = min(100.0, max(0.0, overall_score))
+    confidence_score = min((skill_match_pct + text_similarity + experience_match) / 300 + 0.2, 1.0)
     
     if overall_score < 40:
         recommendation_level = "LOW_MATCH"
