@@ -104,6 +104,57 @@ def extract_comprehensive_skills_match(cv_text, job_text):
     print(f"Missing skills: {missing}")
 
     skill_match_pct = (len(matched) / max(len(matched) + len(missing), 1)) * 100
+    
+    #kemiripan teks
+    cv_words = set(word.lower() for word in cv_text.split() if len(word) > 2)
+    job_words = set(word.lower() for word in job_text.split() if len(word) > 2)
+    common_words = cv_words.intersection(job_words)
+    text_similarity = min(100.0, (len(common_words) / max(len(job_words), 1)) * 100)
+    
+    #pengalaman
+    import re
+    cv_years = re.findall(r'(\d+)\s*(?:years?|yrs?)', cv_lower)
+    cv_experience = max([int(year) for year in cv_years], default=0)
+    
+    job_years = re.findall(r'(\d+)\s*(?:years?|yrs?)', job_lower)
+    required_experience = min([int(year) for year in job_years], default=0)
+    
+    experience_match = min(100.0, (cv_experience / max(required_experience, 1)) * 100) if required_experience > 0 else 75
+    
+    #overall score
+    weights = {
+        'skill_match': 0.5,
+        'text_similarity': 0.3,
+        'experience_match': 0.2
+    }
+    
+    overall_score = (
+        skill_match_pct * weights['skill_match'] +
+        text_similarity * weights['text_similarity'] +
+        experience_match * weights['experience_match']
+    )
+    
+    if overall_score < 40:
+        recommendation_level = "LOW_MATCH"
+        tips = [
+            "Focus on developing fundamental skills mentioned in job description",
+            "Consider entry-level positions or internships in this field",
+            "Take relevant online courses or certifications"
+        ]
+    elif overall_score < 70:
+        recommendation_level = "MODERATE_MATCH"
+        tips = [
+            "Develop the missing high-priority skills",
+            "Gain practical experience through projects or freelancing",
+            "Tailor your CV to highlight relevant experience"
+        ]
+    else:
+        recommendation_level = "STRONG_MATCH"
+        tips = [
+            "Highlight your matching skills prominently in applications",
+            "Prepare specific examples of relevant experience for interviews",
+            "Apply with confidence to similar positions"
+        ]
 
     return {
         'matched_skills': matched,
@@ -112,5 +163,21 @@ def extract_comprehensive_skills_match(cv_text, job_text):
         'total_cv_skills': len([s for s, _ in skill_keywords.items() if s in cv_lower]),
         'total_required_skills': len([s for s, _ in skill_keywords.items() if s in job_lower]),
         'total_matched_skills': len(matched),
-        'skill_coverage': (len(matched) / max(len(skill_keywords), 1)) * 100
+        'skill_coverage': (len(matched) / max(len(skill_keywords), 1)) * 100,
+        'overall_score': round(overall_score, 2),
+        'text_similarity': round(text_similarity, 2),
+        'skill_match': round(skill_match_pct, 2),
+        'experience_match': round(experience_match, 2),
+        'education_match': round(overall_score * 0.8, 2),  
+        'industry_match': round(overall_score * 0.9, 2),   
+        'recommendation_level': recommendation_level,
+        'tips': tips,
+        'confidence_score': round(min(1.0, overall_score / 100 + 0.2), 2),
+        'analysis_metadata': {
+            'cv_word_count': len(cv_text.split()),
+            'job_word_count': len(job_text.split()),
+            'common_words_count': len(common_words),
+            'cv_experience_years': cv_experience,
+            'required_experience_years': required_experience
+        }
     }
