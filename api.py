@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from utils.pdf_utils import extract_text_from_pdf, is_ats_friendly
 from utils.language_utils import validate_english_text
 from utils.similarity_utils import find_alternative_jobs_for_cv
+from utils.skills_utils import extract_comprehensive_skills_match  
 
 import pandas as pd
 import os
@@ -765,7 +766,7 @@ def analyze_cv_with_job():
                 status_code=400
             )
         
-        analysis_result = perform_analysis(cv_text, job_title, job_description)
+        analysis_result = extract_comprehensive_skills_match(cv_text, job_description)
 
         if (analysis_result.get('recommendation_level') == 'LANGUAGE_ERROR' 
             or analysis_result.get('analysis_metadata', {}).get('language_error')):
@@ -819,7 +820,7 @@ def analyze_cv_with_job():
 @limiter.limit("10 per minute")
 def find_alternative_jobs():
     try:
-        #validasi jasa json
+        #validasi data json
         if not request.is_json:
             return create_standard_response(
                 False, "Invalid content type",
@@ -954,22 +955,28 @@ def api_documentation():
     return jsonify(docs)
 
 def create_app():
+    """Enhanced application factory with better error handling."""
     try:
+        # Create necessary directories
         directories = [config.UPLOAD_FOLDER, config.TEMP_FOLDER, 'logs']
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
             logger.info(f"Directory ensured: {directory}")
         
+        # Set Flask configurations
         app.config['MAX_CONTENT_LENGTH'] = config.MAX_FILE_SIZE
         app.config['SECRET_KEY'] = config.SECRET_KEY
         app.config['UPLOAD_FOLDER'] = config.UPLOAD_FOLDER
         
+        # Validate secret key
         if config.SECRET_KEY == "your-secret-key-change-this":
             logger.warning("Using default secret key! Change this in production!")
         
+        # Initialize analyzer
         logger.info("Initializing job analyzer...")
         initialize_analyzer()
         
+        # Final health check
         if job_data is None:
             logger.error("Failed to load job dataset!")
         else:
@@ -981,8 +988,11 @@ def create_app():
         logger.error(f"Application creation failed: {e}", exc_info=True)
         raise
 
+# Cleanup function for graceful shutdown
 def cleanup_on_exit():
+    """Clean up resources on application exit."""
     try:
+        # Clean up temporary files
         if os.path.exists(config.TEMP_FOLDER):
             shutil.rmtree(config.TEMP_FOLDER, ignore_errors=True)
             logger.info("Cleaned up temporary files")
@@ -990,11 +1000,15 @@ def cleanup_on_exit():
         logger.error(f"Cleanup error: {e}")
 
 if __name__ == '__main__':
+    # Register cleanup function
     import atexit
     atexit.register(cleanup_on_exit)
-
+    
+    # Create and run the application
     try:
         application = create_app()
+        
+        # Run with different configurations for development vs production
         if config.DEBUG:
             logger.info("Starting development server...")
             application.run(
@@ -1002,10 +1016,11 @@ if __name__ == '__main__':
                 port=int(os.getenv('PORT', 8000)),
                 debug=True,
                 threaded=True,
-                use_reloader=False  
+                use_reloader=False  # Avoid double initialization
             )
         else:
             logger.info("Starting production server...")
+            # In production, use a proper WSGI server like Gunicorn
             application.run(
                 host='0.0.0.0',
                 port=int(os.getenv('PORT', 8000)),
