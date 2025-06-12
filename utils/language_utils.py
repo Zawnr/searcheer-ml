@@ -5,12 +5,12 @@ DetectorFactory.seed = 0
 
 
 def detect_language(text):
-    if not text or len(text.strip()) < 10:
+    if not text or len(text.strip()) < 3:
         return "unknown"
     try:
         cleaned_text = re.sub(r'[^\w\s]', ' ', text)
         cleaned_text = ' '.join(cleaned_text.split())
-        if len(cleaned_text) < 10:
+        if len(cleaned_text) < 3:
             return "unknown"
         return detect(cleaned_text)
     except:
